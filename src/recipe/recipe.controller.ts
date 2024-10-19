@@ -8,11 +8,12 @@ export class RecipeController {
     constructor(private recipeService: RecipeService) {}
 
     @Post()
-    createRecipe(@Body() body:{recipeData:RecipeData, user:User}) {
-        return this.recipeService.createRecipe(body.recipeData, body.user);
+    createRecipe(@Body() body:RecipeData) {
+        console.log(body)
+        return this.recipeService.createRecipe(body);
     }
 
-    @Get()
+    @Get('/all')
     findAll() {
         return this.recipeService.findAll();
     }
