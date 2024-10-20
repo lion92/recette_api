@@ -94,7 +94,7 @@ export class RecipeService {
         }
 
         // S'assurer que l'utilisateur modifie sa propre recette
-        if (recipe.user !== userId) {
+        if (recipe.user?.id !== userId) {
             throw new UnauthorizedException('Accès non autorisé à cette recette');
         }
 
