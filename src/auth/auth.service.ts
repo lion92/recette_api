@@ -70,4 +70,34 @@ export class AuthService {
         const salt = await bcrypt.genSalt(10);
         return bcrypt.hash(password, salt);
     }
+    async getUserFromToken(authorizationHeader: string): Promise<User> {
+        if (!authorizationHeader) {
+            throw new UnauthorizedException('Token JWT manquant');
+        }
+
+        const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe "Bearer"
+
+        try {
+            // Vérification du token JWT
+            const decodedToken = await this.jwtService.verifyAsync(token, {
+                secret: ""+process.env.JWT_SECRET, // Utiliser la clé secrète correcte
+            });
+
+            // Extraction de l'ID de l'utilisateur à partir du token
+            const userId = decodedToken?.id;
+
+            // Recherche de l'utilisateur dans la base de données
+            const user = await this.userRepository.findOne({ where: { id: userId } });
+
+            if (!user) {
+                throw new NotFoundException('Utilisateur non trouvé');
+            }
+
+            return user;
+        } catch (error) {
+            throw new UnauthorizedException('Token JWT invalide ou expiré');
+        }
+    }
+
+
 }

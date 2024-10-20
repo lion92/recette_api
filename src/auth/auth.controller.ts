@@ -1,6 +1,7 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import {Controller, Post, Body, Get, UnauthorizedException, Headers} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {User} from "../entity/User.entity";
+import {RecipeData} from "../interface/Recipe";
 
 @Controller('auth')
 export class AuthController {
@@ -15,6 +16,9 @@ export class AuthController {
     login(@Body() body:{ username: string; password: string }) {
         return this.authService.login(body.username, body.password);
     }
-
+    @Get('me')
+    createRecipe(@Headers('Authorization') authorizationHeader: string) {
+        return this.authService.getUserFromToken(authorizationHeader);
+    }
 
 }
