@@ -14,7 +14,7 @@ export class RecipeService {
     ) {}
 
     // Création d'une recette liée à un utilisateur
-    async createRecipe(createRecipeDto: RecipeData, authorizationHeader: string) {
+    async createRecipe(createRecipeDto: Recipe, authorizationHeader: string) {
         console.log(authorizationHeader)
         // Vérification si le header Authorization est présent
         if (!authorizationHeader) {
@@ -25,7 +25,7 @@ export class RecipeService {
 
         try {
             // Vérification et déchiffrement du token JWT
-            const decryptToken = await this.jwtService.verifyAsync(token, { secret: ""+process.env.secret });
+            const decryptToken = await this.jwtService.verifyAsync(token, { secret: ""+process.env.SECRET });
 
             if (!decryptToken) {
                 throw new UnauthorizedException('Token JWT invalide ou expiré');
@@ -80,7 +80,7 @@ export class RecipeService {
     // Mettre à jour une recette
     async updateRecipe(id: number, updateData: Partial<Recipe>, authorizationHeader: string): Promise<any> {
         const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
-        const decryptToken = await this.jwtService.verifyAsync(token, { secret:""+ process.env.secret });
+        const decryptToken = await this.jwtService.verifyAsync(token, { secret:""+ process.env.SECRET });
         const userId = decryptToken?.id;
 
         if (!userId) {
@@ -105,7 +105,7 @@ export class RecipeService {
     // Supprimer une recette
     async deleteRecipe(id: number, authorizationHeader: string): Promise<any> {
         const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
-        const decryptToken = await this.jwtService.verifyAsync(token, { secret: ""+process.env.secret });
+        const decryptToken = await this.jwtService.verifyAsync(token, { secret: ""+process.env.SECRET });
         const userId = decryptToken?.id;
 
         if (!userId) {

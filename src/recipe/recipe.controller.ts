@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Headers } from '@nestjs/common';
-import { RecipeService } from './recipe.service';
-import { RecipeData } from "../interface/Recipe";
+import {Body, Controller, Delete, Get, Headers, Param, Post, Put} from '@nestjs/common';
+import {RecipeService} from './recipe.service';
+import {RecipeData} from "../interface/Recipe";
+import {Recipe} from "../entity/Recipe.entity";
 
 @Controller('recipes')
 export class RecipeController {
@@ -8,7 +9,7 @@ export class RecipeController {
 
     // Création d'une recette, en passant le JWT depuis l'en-tête
     @Post()
-    createRecipe(@Body() body: RecipeData, @Headers('Authorization') authorizationHeader: string) {
+    createRecipe(@Body() body: Recipe, @Headers('Authorization') authorizationHeader: string) {
         console.log(body);
         return this.recipeService.createRecipe(body, authorizationHeader);
     }
@@ -29,7 +30,7 @@ export class RecipeController {
     @Put(':id')
     updateRecipe(
         @Param('id') id: number,
-        @Body() updateData: RecipeData,
+        @Body() updateData: Recipe,
         @Headers('Authorization') authorizationHeader: string
     ) {
         return this.recipeService.updateRecipe(id, updateData, authorizationHeader);

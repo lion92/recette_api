@@ -46,7 +46,7 @@ export class AuthService {
             if (!bool) {
                 throw new UnauthorizedException('illegal');
             } else {
-                const jwt = await this.jwtService.signAsync({id: userFind.id}, {secret: ""+process.env.secret});
+                const jwt = await this.jwtService.signAsync({id: userFind.id}, {secret: ""+process.env.SECRET});
 
                 return {jwt};
             }

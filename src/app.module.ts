@@ -6,6 +6,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { MulterModule } from '@nestjs/platform-express';
 import {AuthModule} from "./auth/auth.module";
 import {RecipeModule} from "./recipe/recipe.module";
+import {IngredientModule} from "./ingredient/Ingredient.module";
+import {CategoryRecipeController} from "./categoryRecipe/CategoryRecipe.controller";
 
 @Module({
   imports: [
@@ -23,11 +25,13 @@ import {RecipeModule} from "./recipe/recipe.module";
       synchronize: true,
     }),
     JwtModule.register({
-      secret: process.env.secret,
+      secret: process.env.SECRET,
       signOptions: { expiresIn: '24d' },
     }),
       AuthModule,
-      RecipeModule
+      RecipeModule,
+      IngredientModule,
+      CategoryRecipeController
   ],
   controllers: [AppController],
   providers: [AppService],
