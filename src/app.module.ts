@@ -20,7 +20,7 @@ import {CategoryRecipeModule} from "./categoryRecipe/CategoryRecipe.module";
       port: 3306,
       username: 'root',
       password: '',
-      database: 'recette4',
+      database: 'base2',
       entities: ['src/../**/*.entity.js'],
       synchronize: true,
     }),

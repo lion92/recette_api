@@ -6,9 +6,9 @@ export interface RecipeData {
   id?:number;
   title: string;
   description: string;
-  ingredients: Ingredient;
+  ingredients: Ingredient[];
   instructions: string;
-  category: Category;
+  category: Category[];
   jwt:string;
   user?:User;
   isPublished?: boolean; // Ce champ est optionnel

@@ -1,16 +1,21 @@
 import {Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
-import {Repository} from 'typeorm';
+import {In, Repository} from 'typeorm';
 import {JwtService} from '@nestjs/jwt';
 import {Recipe} from "../entity/Recipe.entity";
 import {Ingredient} from "../entity/Ingredient.entity";
 import {Category} from "../entity/Category.entity";
+import {RecipeData} from "../interface/Recipe";
 
 @Injectable()
 export class RecipeService {
     constructor(
         @InjectRepository(Recipe)
         private recipesRepository: Repository<Recipe>,
+        @InjectRepository(Category)
+        private categoryRepository: Repository<Category>,
+        @InjectRepository(Ingredient)
+        private ingredientRepository: Repository<Ingredient>,
         private jwtService: JwtService
     ) {}
 
@@ -40,27 +45,53 @@ export class RecipeService {
                 throw new UnauthorizedException('Utilisateur non valide');
             }
 
-// Création de l'objet Recipe à partir des données DTO et de l'ID utilisateur
-            const newRecipe = this.recipesRepository.create({
-                ...createRecipeDto,
-                user: userId,
+            const ingredients = await this.ingredientRepository.findBy({
+                id: In(createRecipeDto.ingredients),
             });
 
-            console.log()
+// 2. Vérifier si tous les ingrédients ont été trouvés
+            if (ingredients.length <=0) {
+                throw new Error('Some ingredients were not found');
+            }
 
-            // Sauvegarde de la nouvelle recette dans la base de données
-            return await this.recipesRepository.save(newRecipe);
+// 3. Récupérer toutes les catégories à partir de leurs identifiants
+            const categories = await this.categoryRepository.findBy({
+                id: In(createRecipeDto.categories),
+            });
+
+// 4. Vérifier si toutes les catégories ont été trouvées
+            if (categories.length<=0) {
+                throw new Error('Some categories were not found');
+            }
+            console.log(ingredients)
+            console.log(categories)
+// 5. Créer la nouvelle recette en incluant les ingrédients et les catégories
+            const newRecipe = this.recipesRepository.create({
+                ...createRecipeDto,
+                user: userId, // Associer l'utilisateur à la recette
+                ingredients:ingredients,  // Associer les ingrédients récupérés
+                categories:categories,   // Associer les catégories récupérées
+            });
+
+// 6. Sauvegarder la recette dans la base de données
+            let newVar = await this.recipesRepository.save(newRecipe);
+            console.log(newVar)
+
+            return newVar;
+
 
         } catch (error) {
             // @ts-ignore
-            throw new UnauthorizedException('JWT invalide', error.name);
+            console.log(error);
         }
     }
 
 
     // Trouver toutes les recettes
-    findAll(): Promise<Recipe[]> {
-        return this.recipesRepository.find();
+    async findAll(): Promise<Recipe[]> {
+        return this.recipesRepository.find({
+            relations: ['user', 'ingredients', 'categories'], // Charge les relations nécessaires
+        });
     }
 
     // Trouver une recette par ID

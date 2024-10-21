@@ -25,31 +25,12 @@ export class Recipe {
     user!: User;
 
     // Relation Many-to-Many avec les ingrédients
-    @ManyToMany(() => Recipe)
-    @JoinTable({
-        name: "Recipe_Ingredient",
-        joinColumn: {
-            name: "Recipe",
-            referencedColumnName: "id",
-        },
-        inverseJoinColumn: {
-            name: "Ingredient",
-            referencedColumnName: "id",
-        },
-    })
+    @ManyToMany(() => Ingredient,  Ingredient=>Ingredient.id)
+    @JoinTable()
     ingredients!: Ingredient[];
 
-    @ManyToMany(() => Recipe)
-    @JoinTable({
-        name: "Recipe_Category",
-        joinColumn: {
-            name: "RecipeId",
-            referencedColumnName: "id",
-        },
-        inverseJoinColumn: {
-            name: "Category",
-            referencedColumnName: "id",
-        },
-    })
+    // Relation Many-to-Many avec les catégories
+    @ManyToMany(() => Category,  Category=>Category.id)
+    @JoinTable()
     categories!: Category[];
 }

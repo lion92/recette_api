@@ -1,4 +1,6 @@
-import {Column, Entity, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Ingredient} from "./Ingredient.entity";
+import {Recipe} from "./Recipe.entity";
 
 @Entity()
 export class Category {
@@ -7,4 +9,7 @@ export class Category {
 
     @Column()
     name!: string;
+
+
+
 }

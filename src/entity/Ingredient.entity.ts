@@ -1,4 +1,5 @@
-import {Column, Entity, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Recipe} from "./Recipe.entity";
 
 @Entity()
 export class Ingredient {
@@ -13,4 +14,6 @@ export class Ingredient {
 
     @Column('decimal', { precision: 10, scale: 2 })
     price!: number;
+
+
 }
