@@ -11,14 +11,12 @@ export class RecipeService {
     constructor(
         @InjectRepository(Recipe)
         private recipesRepository: Repository<Recipe>,
-        private recipesCategoryRepository: Repository<Recipe>,
-        private recipesIngredientRepository: Repository<Recipe>,
         private jwtService: JwtService
     ) {}
 
     // Création d'une recette liée à un utilisateur
     async createRecipe(createRecipeDto: Recipe, authorizationHeader: string) {
-        console.log(createRecipeDto.ingredients);
+        console.log(createRecipeDto);
         console.log(authorizationHeader);
 
         // Vérification si le header Authorization est présent
