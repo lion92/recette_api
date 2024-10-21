@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { MulterModule } from '@nestjs/platform-express';
+import {Module} from '@nestjs/common';
+import {AppController} from './app.controller';
+import {AppService} from './app.service';
+import {TypeOrmModule} from '@nestjs/typeorm';
+import {JwtModule} from '@nestjs/jwt';
+import {MulterModule} from '@nestjs/platform-express';
 import {AuthModule} from "./auth/auth.module";
 import {RecipeModule} from "./recipe/recipe.module";
 import {IngredientModule} from "./ingredient/Ingredient.module";
-import {CategoryRecipeController} from "./categoryRecipe/CategoryRecipe.controller";
+import {CategoryRecipeModule} from "./categoryRecipe/CategoryRecipe.module";
 
 @Module({
   imports: [
@@ -31,7 +31,7 @@ import {CategoryRecipeController} from "./categoryRecipe/CategoryRecipe.controll
       AuthModule,
       RecipeModule,
       IngredientModule,
-      CategoryRecipeController
+     CategoryRecipeModule
   ],
   controllers: [AppController],
   providers: [AppService],

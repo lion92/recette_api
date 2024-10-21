@@ -15,6 +15,7 @@ export class RecipeService {
 
     // Création d'une recette liée à un utilisateur
     async createRecipe(createRecipeDto: Recipe, authorizationHeader: string) {
+        console.log(createRecipeDto)
         console.log(authorizationHeader)
         // Vérification si le header Authorization est présent
         if (!authorizationHeader) {
