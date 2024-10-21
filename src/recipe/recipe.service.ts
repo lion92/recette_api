@@ -1,22 +1,26 @@
-import { Injectable, UnauthorizedException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Recipe } from '../entity/Recipe.entity';
-import { RecipeData } from "../interface/Recipe";
-import { JwtService } from '@nestjs/jwt';
+import {Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {Repository} from 'typeorm';
+import {JwtService} from '@nestjs/jwt';
+import {Recipe} from "../entity/Recipe.entity";
+import {Ingredient} from "../entity/Ingredient.entity";
+import {Category} from "../entity/Category.entity";
 
 @Injectable()
 export class RecipeService {
     constructor(
         @InjectRepository(Recipe)
         private recipesRepository: Repository<Recipe>,
+        private recipesCategoryRepository: Repository<Recipe>,
+        private recipesIngredientRepository: Repository<Recipe>,
         private jwtService: JwtService
     ) {}
 
     // Création d'une recette liée à un utilisateur
     async createRecipe(createRecipeDto: Recipe, authorizationHeader: string) {
-        console.log(createRecipeDto)
-        console.log(authorizationHeader)
+        console.log(createRecipeDto.ingredients);
+        console.log(authorizationHeader);
+
         // Vérification si le header Authorization est présent
         if (!authorizationHeader) {
             throw new UnauthorizedException('En-tête Authorization manquant');
@@ -38,29 +42,23 @@ export class RecipeService {
                 throw new UnauthorizedException('Utilisateur non valide');
             }
 
-            // Création de l'objet Recipe à partir des données DTO et de l'ID utilisateur
+// Création de l'objet Recipe à partir des données DTO et de l'ID utilisateur
             const newRecipe = this.recipesRepository.create({
                 ...createRecipeDto,
-                user: userId,  // Associer l'utilisateur via l'ID extrait du token
+                user: userId,
             });
+
+            console.log()
 
             // Sauvegarde de la nouvelle recette dans la base de données
             return await this.recipesRepository.save(newRecipe);
 
         } catch (error) {
             // @ts-ignore
-            if (error.name === 'JsonWebTokenError') {
-                throw new UnauthorizedException('JWT invalide');
-            } else { // @ts-ignore
-                if (error.name === 'TokenExpiredError') {
-                                throw new UnauthorizedException('Le token a expiré');
-                            } else {
-                                // @ts-ignore
-                                throw new InternalServerErrorException('Erreur lors de la création de la recette : ' + error.message);
-                            }
-            }
+            throw new UnauthorizedException('JWT invalide', error.name);
         }
     }
+
 
     // Trouver toutes les recettes
     findAll(): Promise<Recipe[]> {
@@ -79,7 +77,7 @@ export class RecipeService {
     }
 
     // Mettre à jour une recette
-    async updateRecipe(id: number, updateData: Partial<Recipe>, authorizationHeader: string): Promise<any> {
+    async updateRecipe(id: number, updateData: Recipe, authorizationHeader: string) {
         const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
         const decryptToken = await this.jwtService.verifyAsync(token, { secret:""+ process.env.SECRET });
         const userId = decryptToken?.id;
@@ -104,7 +102,7 @@ export class RecipeService {
     }
 
     // Supprimer une recette
-    async deleteRecipe(id: number, authorizationHeader: string): Promise<any> {
+    async deleteRecipe(id: number, authorizationHeader: string){
         const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
         const decryptToken = await this.jwtService.verifyAsync(token, { secret: ""+process.env.SECRET });
         const userId = decryptToken?.id;

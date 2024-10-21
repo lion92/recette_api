@@ -1,6 +1,5 @@
 import {Body, Controller, Delete, Get, Headers, Param, Post, Put} from '@nestjs/common';
 import {RecipeService} from './recipe.service';
-import {RecipeData} from "../interface/Recipe";
 import {Recipe} from "../entity/Recipe.entity";
 
 @Controller('recipes')
