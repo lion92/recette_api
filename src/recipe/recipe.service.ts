@@ -5,7 +5,7 @@ import {JwtService} from '@nestjs/jwt';
 import {Recipe} from "../entity/Recipe.entity";
 import {Ingredient} from "../entity/Ingredient.entity";
 import {Category} from "../entity/Category.entity";
-import {RecipeData} from "../interface/Recipe";
+import {RecipeDTO} from "../interface/RecipeDTO";
 
 @Injectable()
 export class RecipeService {
@@ -88,11 +88,21 @@ export class RecipeService {
 
 
     // Trouver toutes les recettes
-    async findAll(): Promise<Recipe[]> {
-        return this.recipesRepository.find({
+    async findAll(): Promise<RecipeDTO[]> {
+        let recipes = await this.recipesRepository.find({
             relations: ['user', 'ingredients', 'categories'], // Charge les relations nécessaires
         });
+
+        // Map sur les recettes pour éliminer le champ password de l'utilisateur
+        return recipes.map(recipe => {
+            const { password, ...userWithoutPassword } = recipe.user; // Extraire le champ password et conserver le reste
+            return {
+                ...recipe,
+                user: userWithoutPassword, // Utiliser l'objet user sans le champ password
+            };
+        });
     }
+
 
     // Trouver une recette par ID
     async findOne(id: number): Promise<Recipe> {
