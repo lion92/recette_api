@@ -10,6 +10,7 @@ export class User {
     username!: string
 
     @Column()
+    @Column({ select: false })
     password!: string
 
     @OneToMany(() => Recipe, (recipe) => recipe.user)
