@@ -34,4 +34,6 @@ export class RecipeDTO {
     @ManyToMany(() => Category,  Category=>Category.id)
     @JoinTable()
     categories!: Category[];
+
+    totalCost!: number;
 }

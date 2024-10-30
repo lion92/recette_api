@@ -6,6 +6,7 @@ import {Recipe} from "../entity/Recipe.entity";
 import {Ingredient} from "../entity/Ingredient.entity";
 import {Category} from "../entity/Category.entity";
 import {RecipeDTO} from "../interface/RecipeDTO";
+import {User} from "../entity/User.entity";
 
 @Injectable()
 export class RecipeService {
@@ -88,19 +89,31 @@ export class RecipeService {
 
 
     // Trouver toutes les recettes
-    async findAll(): Promise<RecipeDTO[]> {
+    async findAll(): Promise<{
+        instructions: string;
+        isPublished: boolean;
+        description: string;
+        ingredients: Ingredient[];
+        id: number;
+        categories: Category[];
+        title: string;
+        user: Omit<User, "password">;
+        totalCost: number
+    }[]> {
         let recipes = await this.recipesRepository.find({
             relations: ['user', 'ingredients', 'categories'], // Charge les relations nécessaires
         });
 
-        // Map sur les recettes pour éliminer le champ password de l'utilisateur
         return recipes.map(recipe => {
             const { password, ...userWithoutPassword } = recipe.user; // Extraire le champ password et conserver le reste
+
             return {
                 ...recipe,
                 user: userWithoutPassword, // Utiliser l'objet user sans le champ password
+                totalCost: recipe.ingredients.reduce((total, ingredient) => total + Number(ingredient.price), 0) // Calculer et ajouter le coût total
             };
         });
+
     }
 
 
