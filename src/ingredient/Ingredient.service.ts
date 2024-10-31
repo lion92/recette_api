@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import {Headers, Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ingredient } from '../entity/Ingredient.entity';
-
+import {JwtService} from '@nestjs/jwt';
 @Injectable()
 export class IngredientService {
     constructor(
         @InjectRepository(Ingredient)
         private ingredientRepository: Repository<Ingredient>,
+        private jwtService: JwtService
     ) {}
 
     // Retourne tous les ingrédients
@@ -32,7 +33,30 @@ export class IngredientService {
     }
 
     // Supprime un ingrédient en fonction de l'ID
-    delete(id: number): Promise<void> {
+    async delete(id: number, @Headers('Authorization') authorizationHeader: string): Promise<void> {
+        const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
+        const decryptToken = await this.jwtService.verifyAsync(token, {secret: "" + process.env.SECRET});
+        const userId = decryptToken?.id;
+
+        if (!userId) {
+            throw new UnauthorizedException('Utilisateur non valide');
+        }
+
+// Recherche de l'ingrédient par son ID
+        const ingredient = await this.ingredientRepository.findOne({where: {id}, relations: ['user']});
+        console.log(ingredient);
+        console.log(id);
+
+        if (!ingredient) {
+            throw new NotFoundException(`Ingrédient avec l'ID ${id} non trouvé`);
+        }
+        console.log(userId);
+
+// S'assurer que l'utilisateur supprime son propre ingrédient
+        if (ingredient.user.id !== userId) {
+            throw new UnauthorizedException('Accès non autorisé à cet ingrédient');
+        }
+
         return this.ingredientRepository.delete(id).then(() => undefined);
     }
 }

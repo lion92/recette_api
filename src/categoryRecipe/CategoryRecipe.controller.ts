@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedException } from '@nestjs/common';
+import {Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedException, Headers} from '@nestjs/common';
 import { CategoryRecipeService } from './CategoryRecipe.service';
 import { Category } from '../entity/Category.entity';
 import * as jwt from 'jsonwebtoken';
@@ -30,9 +30,11 @@ export class CategoryRecipeController {
     }
 
     @Delete(':id')
-    delete(@Req() req:Request, @Param('id') id: number): Promise<void> {
+    delete(@Req() req:Request, @Param('id') id: number,  @Headers('Authorization') authorizationHeader: string): Promise<{
+        message: string
+    }> {
         this.verifyToken(req);
-        return this.categoryService.delete(id);
+        return this.categoryService.delete(id, authorizationHeader);
     }
 
     // Méthode pour vérifier le token

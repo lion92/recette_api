@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedException } from '@nestjs/common';
+import {Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedException, Headers} from '@nestjs/common';
 import { Request } from 'express'; // Import du type Request
 import { IngredientService } from './ingredient.service';
 import { Ingredient } from '../entity/Ingredient.entity';
@@ -31,9 +31,9 @@ export class IngredientController {
     }
 
     @Delete(':id')
-    delete(@Req() req: Request, @Param('id') id: number): Promise<void> {
+    delete(@Req() req: Request, @Param('id') id: number,  @Headers('Authorization') authorizationHeader: string): Promise<void> {
         this.verifyToken(req);
-        return this.ingredientService.delete(id);
+        return this.ingredientService.delete(id, authorizationHeader);
     }
 
     // Méthode pour vérifier le token

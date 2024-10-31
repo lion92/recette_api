@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import {Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from '../entity/Category.entity';
-
+import {JwtService} from '@nestjs/jwt';
 @Injectable()
 export class CategoryRecipeService {
     constructor(
         @InjectRepository(Category)
         private categoryRepository: Repository<Category>,
+        private jwtService: JwtService
     ) {}
 
     // Retourne toutes les catégories
@@ -32,7 +33,34 @@ export class CategoryRecipeService {
     }
 
     // Supprime une catégorie en fonction de l'ID
-    delete(id: number): Promise<void> {
-        return this.categoryRepository.delete(id).then(() => undefined);
+    async delete(id: number, authorizationHeader: string) {
+        const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
+        const decryptToken = await this.jwtService.verifyAsync(token, { secret: "" + process.env.SECRET });
+        const userId = decryptToken?.id;
+
+        if (!userId) {
+            throw new UnauthorizedException('Utilisateur non valide');
+        }
+
+        // Recherche de la catégorie par son ID
+        const category = await this.categoryRepository.findOne({ where: { id }, relations: ['user'] });
+        console.log(category);
+        console.log(id);
+
+        if (!category) {
+            throw new NotFoundException(`Catégorie avec l'ID ${id} non trouvée`);
+        }
+        console.log(userId);
+
+        // S'assurer que l'utilisateur supprime sa propre catégorie
+        if (category.user.id !== userId) {
+            throw new UnauthorizedException('Accès non autorisé à cette catégorie');
+        }
+
+        // Suppression de la catégorie
+        await this.categoryRepository.remove(category);
+
+        return { message: `Catégorie avec l'ID ${id} supprimée avec succès` };
     }
+
 }
