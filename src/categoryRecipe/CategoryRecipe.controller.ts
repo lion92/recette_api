@@ -18,9 +18,9 @@ export class CategoryRecipeController {
     }
 
     @Post()
-    create(@Req() req:Request, @Body() category: Category): Promise<Category> {
+    create(@Req() req:Request, @Body() category: Category, @Headers('Authorization') authorizationHeader: string): Promise<Category> {
         this.verifyToken(req);
-        return this.categoryService.create(category);
+        return this.categoryService.create(category, authorizationHeader);
     }
 
     @Put(':id')

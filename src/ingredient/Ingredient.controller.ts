@@ -19,9 +19,9 @@ export class IngredientController {
     }
 
     @Post()
-    create(@Req() req: Request, @Body() ingredient: Ingredient): Promise<Ingredient> {
+    create(@Req() req: Request, @Body() ingredient: Ingredient, @Headers('Authorization') authorizationHeader: string): Promise<Ingredient> {
         this.verifyToken(req);
-        return this.ingredientService.create(ingredient);
+        return this.ingredientService.create(ingredient, authorizationHeader);
     }
 
     @Put(':id')

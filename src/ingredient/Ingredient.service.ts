@@ -3,11 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ingredient } from '../entity/Ingredient.entity';
 import {JwtService} from '@nestjs/jwt';
+import {User} from "../entity/User.entity";
 @Injectable()
 export class IngredientService {
     constructor(
         @InjectRepository(Ingredient)
         private ingredientRepository: Repository<Ingredient>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
         private jwtService: JwtService
     ) {}
 
@@ -22,9 +25,49 @@ export class IngredientService {
     }
 
     // Crée un nouvel ingrédient
-    create(ingredient: Ingredient): Promise<Ingredient> {
-        return this.ingredientRepository.save(ingredient);
+    async create(ingredientData: Ingredient, authorizationHeader: string): Promise<Ingredient> {
+
+        if (!authorizationHeader) {
+            throw new UnauthorizedException('En-tête Authorization manquant');
+        }
+
+        const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
+
+        try {
+            // Vérification et déchiffrement du token JWT
+            const decryptToken = await this.jwtService.verifyAsync(token, { secret: "" + process.env.SECRET });
+
+            if (!decryptToken) {
+                throw new UnauthorizedException('Token JWT invalide ou expiré');
+            }
+
+            // Récupération de l'ID utilisateur à partir du token
+            const userId = decryptToken?.id;
+            if (!userId) {
+                throw new UnauthorizedException('Utilisateur non valide');
+            }
+
+            // Récupérer l'utilisateur à partir de l'ID
+            const user = await this.userRepository.findOne({ where: { id: userId } });
+            if (!user) {
+                throw new UnauthorizedException('Utilisateur non trouvé');
+            }
+
+            // Associer l'utilisateur à l'ingrédient
+            const ingredient = this.ingredientRepository.create({
+                ...ingredientData,
+                user: user // Association de l'utilisateur récupéré à l'ingrédient
+            });
+
+            // Sauvegarder l'ingrédient dans la base de données
+            return await this.ingredientRepository.save(ingredient);
+
+        } catch (error) {
+            console.error(error);
+            throw new UnauthorizedException('Une erreur est survenue lors de la création de l\'ingrédient');
+        }
     }
+
 
     // Met à jour un ingrédient
     async update(id: number, updatedIngredient: Partial<Ingredient>): Promise<Ingredient | null> {
