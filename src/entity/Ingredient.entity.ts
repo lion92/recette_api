@@ -10,9 +10,6 @@ export class Ingredient {
     @Column()
     name!: string;
 
-    @Column()
-    type!: string;
-
     @Column('decimal', { precision: 10, scale: 2 })
     price!: number;
 
