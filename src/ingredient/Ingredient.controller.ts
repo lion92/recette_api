@@ -1,6 +1,6 @@
 import {Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedException, Headers} from '@nestjs/common';
 import { Request } from 'express'; // Import du type Request
-import { IngredientService } from './ingredient.service';
+import { IngredientService } from './Ingredient.service';
 import { Ingredient } from '../entity/Ingredient.entity';
 import * as jwt from 'jsonwebtoken';
 

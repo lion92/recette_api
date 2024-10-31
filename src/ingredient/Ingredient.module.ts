@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Ingredient } from '../entity/Ingredient.entity';
-import { IngredientService } from './ingredient.service';
-import { IngredientController } from './ingredient.controller';
+import { IngredientService } from './Ingredient.service';
+import { IngredientController } from './Ingredient.controller';
 import {JwtService} from '@nestjs/jwt';
 import {User} from "../entity/User.entity";
 @Module({
