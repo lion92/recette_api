@@ -1,10 +1,12 @@
 import {Body, Controller, Delete, Get, Headers, Param, Post, Put} from '@nestjs/common';
 import {RecipeService} from './recipe.service';
 import {Recipe} from "../entity/Recipe.entity";
+import {IngredientService} from "../ingredient/Ingredient.service";
 
 @Controller('recipes')
 export class RecipeController {
-    constructor(private recipeService: RecipeService) {}
+    constructor(private recipeService: RecipeService,
+    private readonly ingredientService: IngredientService) {}
 
     // Création d'une recette, en passant le JWT depuis l'en-tête
     @Post()
@@ -40,4 +42,20 @@ export class RecipeController {
     deleteRecipe(@Param('id') id: number, @Headers('Authorization') authorizationHeader: string) {
         return this.recipeService.deleteRecipe(id, authorizationHeader);
     }
+
+    @Get(':recipeId')
+    async getCalories(@Param('recipeId') recipeId: number): Promise<number> {
+        // Récupérer la recette par son ID
+        const recipe = await this.recipeService.findOne(recipeId);
+
+        // Extraire les identifiants des ingrédients
+        const ingredientIds = recipe.ingredients.map(ingredient => ingredient.id);
+
+        // Récupérer les ingrédients en utilisant les identifiants extraits
+        const ingredients = await this.ingredientService.findAllByIds(ingredientIds);
+
+        // Calculer les calories
+        return this.recipeService.calculateCalories(recipe, ingredients);
+    }
+
 }

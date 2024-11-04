@@ -1,7 +1,7 @@
-import {Controller, Post, Body, Get, UnauthorizedException, Headers} from '@nestjs/common';
-import { AuthService } from './auth.service';
-import {User} from "../entity/User.entity";
-import {RecipeData} from "../interface/Recipe";
+import {BadRequestException, Body, Controller, Get, Headers, Post, Query} from '@nestjs/common';
+import {AuthService} from './auth.service';
+import {User} from "../entity/User.entity";import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +19,16 @@ export class AuthController {
     @Get('me')
     createRecipe(@Headers('Authorization') authorizationHeader: string) {
         return this.authService.getUserFromToken(authorizationHeader);
+    }
+
+    @Get('verify-email')
+    async verifyEmail(@Query('token') token: string) {
+        if (!token) {
+            throw new BadRequestException('Token is required');
+        }
+
+        await this.authService.verifyEmail(token);
+        return { message: 'Email successfully verified' };
     }
 
 }

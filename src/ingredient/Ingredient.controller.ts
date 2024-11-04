@@ -3,7 +3,8 @@ import { Request } from 'express'; // Import du type Request
 import { IngredientService } from './Ingredient.service';
 import { Ingredient } from '../entity/Ingredient.entity';
 import * as jwt from 'jsonwebtoken';
-
+import * as dotenv from 'dotenv';
+dotenv.config();
 @Controller('ingredients')
 export class IngredientController {
     constructor(private readonly ingredientService: IngredientService) {}
