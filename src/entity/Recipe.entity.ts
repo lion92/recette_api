@@ -24,6 +24,9 @@ export class Recipe {
     @ManyToOne(() => User, (user) => user.recipes, { eager: true })
     user!: User;
 
+    @Column('float', { default: 0 })
+    totalCalories!: number; // Ajout du champ totalCalories
+
     // Relation Many-to-Many avec les ingrédients
     @ManyToMany(() => Ingredient,  Ingredient=>Ingredient.id)
     @JoinTable()

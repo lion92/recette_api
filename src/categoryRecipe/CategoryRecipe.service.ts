@@ -4,7 +4,8 @@ import {Repository} from 'typeorm';
 import {Category} from '../entity/Category.entity';
 import {JwtService} from '@nestjs/jwt';
 import {User} from "../entity/User.entity";
-
+import * as dotenv from 'dotenv';
+dotenv.config();
 @Injectable()
 export class CategoryRecipeService {
     constructor(

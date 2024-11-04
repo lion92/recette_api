@@ -15,6 +15,13 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(3012);
+  // Configurer CORS
+  app.enableCors({
+    origin: ['https://recette.krissclotilde.com', 'https://www.recette.krissclotilde.com'],
+    methods: 'GET,POST,PUT,DELETE',
+    allowedHeaders: 'Content-Type,Authorization',
+  });
+
+  await app.listen(3007);
 }
 bootstrap();

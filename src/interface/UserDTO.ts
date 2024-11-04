@@ -7,8 +7,11 @@ export class UserDTO {
     id!: number
 
     @Column()
-    username!: string
+    email!: string
 
     @OneToMany(() => RecipeDTO, (recipe) => recipe.user)
     recipes!: RecipeDTO[];
+
+    @Column({ default: false })
+    isEmailVerified!: boolean;
 }

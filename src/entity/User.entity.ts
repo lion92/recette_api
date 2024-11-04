@@ -2,6 +2,7 @@ import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
 import {Recipe} from "./Recipe.entity";
 import {Category} from "./Category.entity";
 import {Ingredient} from "./Ingredient.entity";
+import {IsEmail} from "class-validator";
 
 @Entity()
 export class User {
@@ -9,7 +10,8 @@ export class User {
     id!: number
 
     @Column()
-    username!: string
+    @IsEmail()
+    email!: string
 
     @Column()
     password!: string
@@ -22,6 +24,15 @@ export class User {
 
     @OneToMany(() => Ingredient, (ingredient) => ingredient.user)
     ingredient!: Recipe[];
+
+    @Column({ default: false })
+    isEmailVerified!: boolean;
+
+    @Column({ nullable: true })
+    emailVerificationToken?: string;
+
+
+
 
 
 

@@ -2,7 +2,8 @@ import {Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedExcept
 import { CategoryRecipeService } from './CategoryRecipe.service';
 import { Category } from '../entity/Category.entity';
 import * as jwt from 'jsonwebtoken';
-
+import * as dotenv from 'dotenv';
+dotenv.config();
 @Controller('categories')
 export class CategoryRecipeController {
     constructor(private readonly categoryService: CategoryRecipeService) {}

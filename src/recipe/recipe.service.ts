@@ -5,9 +5,10 @@ import {JwtService} from '@nestjs/jwt';
 import {Recipe} from "../entity/Recipe.entity";
 import {Ingredient} from "../entity/Ingredient.entity";
 import {Category} from "../entity/Category.entity";
-import {RecipeDTO} from "../interface/RecipeDTO";
 import {User} from "../entity/User.entity";
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 @Injectable()
 export class RecipeService {
     constructor(
@@ -34,7 +35,7 @@ export class RecipeService {
 
         try {
             // Vérification et déchiffrement du token JWT
-            const decryptToken = await this.jwtService.verifyAsync(token, { secret: ""+process.env.SECRET });
+            const decryptToken = await this.jwtService.verifyAsync(token, { secret: "" + process.env.SECRET });
 
             if (!decryptToken) {
                 throw new UnauthorizedException('Token JWT invalide ou expiré');
@@ -46,46 +47,56 @@ export class RecipeService {
                 throw new UnauthorizedException('Utilisateur non valide');
             }
 
+            // Récupérer tous les ingrédients à partir de leurs identifiants
             const ingredients = await this.ingredientRepository.findBy({
                 id: In(createRecipeDto.ingredients),
             });
 
-// 2. Vérifier si tous les ingrédients ont été trouvés
-            if (ingredients.length <=0) {
-                throw new Error('Some ingredients were not found');
+            // Vérifier si tous les ingrédients ont été trouvés
+            if (ingredients.length <= 0) {
+                throw new Error('Certains ingrédients n\'ont pas été trouvés');
             }
 
-// 3. Récupérer toutes les catégories à partir de leurs identifiants
+            // Récupérer toutes les catégories à partir de leurs identifiants
             const categories = await this.categoryRepository.findBy({
                 id: In(createRecipeDto.categories),
             });
 
-// 4. Vérifier si toutes les catégories ont été trouvées
-            if (categories.length<=0) {
-                throw new Error('Some categories were not found');
+            // Vérifier si toutes les catégories ont été trouvées
+            if (categories.length <= 0) {
+                throw new Error('Certaines catégories n\'ont pas été trouvées');
             }
-            console.log(ingredients)
-            console.log(categories)
-// 5. Créer la nouvelle recette en incluant les ingrédients et les catégories
+
+            console.log(ingredients);
+            console.log(categories);
+
+            // Calcul des calories totales
+            let totalCalories = 0;
+            ingredients.forEach((ingredient) => {
+                totalCalories += ingredient.caloriesPerUnit * (ingredient.defaultQuantity || 1);
+            });
+
+            // Créer la nouvelle recette en incluant les ingrédients, les catégories et les calories totales
             const newRecipe = this.recipesRepository.create({
                 ...createRecipeDto,
                 user: userId, // Associer l'utilisateur à la recette
-                ingredients:ingredients,  // Associer les ingrédients récupérés
-                categories:categories,   // Associer les catégories récupérées
+                ingredients: ingredients, // Associer les ingrédients récupérés
+                categories: categories, // Associer les catégories récupérées
+                totalCalories: totalCalories, // Inclure les calories totales calculées
             });
 
-// 6. Sauvegarder la recette dans la base de données
-            let newVar = await this.recipesRepository.save(newRecipe);
-            console.log(newVar)
+            // Sauvegarder la recette dans la base de données
+            const savedRecipe = await this.recipesRepository.save(newRecipe);
+            console.log(savedRecipe);
 
-            return newVar;
-
+            return savedRecipe;
 
         } catch (error) {
-            // @ts-ignore
-            console.log(error);
+            console.error(error);
+            throw new Error('Erreur lors de la création de la recette');
         }
     }
+
 
 
     // Trouver toutes les recettes
@@ -178,4 +189,20 @@ export class RecipeService {
 
         return this.recipesRepository.delete(recipe[0].id);
     }
+
+    calculateCalories(recipe: Recipe, ingredients: Ingredient[]): number {
+        let totalCalories = 0;
+
+        // Parcourir chaque ingrédient de la recette
+        for (const ingredient of recipe.ingredients) {
+            const quantity = ingredient.defaultQuantity; // Assurez-vous que chaque `Ingredient` a une propriété `quantity`
+
+            if (quantity) {
+                totalCalories += ingredient.caloriesPerUnit * quantity;
+            }
+        }
+
+        return totalCalories;
+    }
+
 }
