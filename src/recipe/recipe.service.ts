@@ -140,6 +140,7 @@ export class RecipeService {
     }
 
     // Mettre à jour une recette
+    // Mettre à jour une recette
     async updateRecipe(
         recipeId: number,
         updateData: Partial<Recipe>,
@@ -216,6 +217,19 @@ export class RecipeService {
                 console.log('Catégories mises à jour :', categories);
             }
 
+            // Recalcul des calories et du prix total
+            let totalCalories = 0;
+            let totalPrice = 0;
+            existingRecipe.ingredients.forEach((ingredient) => {
+                const quantity = ingredient.defaultQuantity || 1;
+                totalCalories += ingredient.caloriesPerUnit * quantity;
+                totalPrice += ingredient.price * quantity;
+            });
+            existingRecipe.totalCalories = totalCalories; // Mettre à jour le total des calories
+            existingRecipe.totalCost = totalPrice; // Mettre à jour le prix total
+            console.log('Calories totales recalculées :', totalCalories);
+            console.log('Prix total recalculé :', totalPrice);
+
             // Sauvegarder la recette mise à jour
             console.log('Sauvegarde de la recette mise à jour');
             await this.recipesRepository.save(existingRecipe);
@@ -239,6 +253,7 @@ export class RecipeService {
             throw error;
         }
     }
+
 
 
 
