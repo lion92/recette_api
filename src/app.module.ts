@@ -26,7 +26,7 @@ dotenv.config();
       port: 3306,
       username: 'root',
       password: '',
-      database: 'recette',
+      database: 'base2',
       entities: ['src/../**/*.entity.js'],
       synchronize: true,
     }),
