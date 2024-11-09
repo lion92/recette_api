@@ -17,7 +17,7 @@ async function bootstrap() {
 
   // Configurer CORS
   app.enableCors({
-    origin: ['https://recette.krissclotilde.com', 'https://www.recette.krissclotilde.com'],
+    origin: ['https://recette.krissclotilde.com', 'https://www.recette.krissclotilde.com',"http://localhost:3007/"],
     methods: 'GET,POST,PUT,DELETE',
     allowedHeaders: 'Content-Type,Authorization',
   });

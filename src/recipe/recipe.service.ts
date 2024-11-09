@@ -7,6 +7,7 @@ import {Ingredient} from "../entity/Ingredient.entity";
 import {Category} from "../entity/Category.entity";
 import {User} from "../entity/User.entity";
 import * as dotenv from 'dotenv';
+import {RecipeDTO} from "../interface/RecipeDTO";
 
 dotenv.config();
 @Injectable()
@@ -297,5 +298,62 @@ export class RecipeService {
 
         return totalCalories;
     }
+
+    async filterByCategoriesAndIngredients(categoryIds: number[], ingredientIds: number[]): Promise<number[]> {
+        const categoryPlaceholders = categoryIds.map(() => '?').join(',');
+        const ingredientPlaceholders = ingredientIds.map(() => '?').join(',');
+
+        const rawData = await this.recipesRepository.query(
+            `
+            SELECT 
+                r.id
+            FROM recipe r
+            JOIN recipe_categories_category rc ON rc.recipeId = r.id
+            JOIN recipe_ingredients_ingredient ri ON ri.recipeId = r.id
+            WHERE rc.categoryId IN (${categoryPlaceholders})
+            AND ri.ingredientId IN (${ingredientPlaceholders})
+            GROUP BY r.id
+            `,
+            [...categoryIds, ...ingredientIds]
+        );
+
+        return rawData.map((recipe: any) => recipe.id);
+    }
+
+    // Méthode pour récupérer les recettes complètes à partir de leurs IDs
+    async getRecipesByIds(recipeIds: number[]): Promise<Recipe[]> {
+        if (recipeIds.length === 0) {
+            return [];
+        }
+
+        const recipes = await this.recipesRepository.find({
+            where: { id: In(recipeIds) },
+            relations: ['user', 'ingredients', 'categories'], // Charger les relations nécessaires
+        });
+
+        // Calculer le totalCost pour chaque recette
+        return recipes.map(recipe => {
+            const totalCost = recipe.ingredients.reduce((total, ingredient) => {
+                const ingredientPrice = ingredient.price || 0; // Assurer que le prix est défini
+                const quantity = ingredient.defaultQuantity || 1; // Utiliser la quantité par défaut si elle est définie
+                return total + (ingredientPrice * quantity);
+            }, 0);
+
+            return {
+                ...recipe,
+                totalCost, // Ajouter le coût total calculé à la recette
+            };
+        });
+    }
+
+    // Méthode complète pour récupérer les recettes filtrées avec détails
+    async getFilteredRecipes(categoryIds: number[], ingredientIds: number[]): Promise<Recipe[]> {
+        const recipeIds = await this.filterByCategoriesAndIngredients(categoryIds, ingredientIds);
+        return this.getRecipesByIds(recipeIds);
+    }
+
+
+
+
 
 }
