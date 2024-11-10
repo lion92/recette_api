@@ -31,7 +31,7 @@ dotenv.config();
       synchronize: true,
     }),
     JwtModule.register({
-      secret: ""+process.env.SECRET,
+      secret: process.env.SECRET,
       signOptions: { expiresIn: '24d' },
     }),
       AuthModule,

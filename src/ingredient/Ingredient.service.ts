@@ -37,7 +37,7 @@ export class IngredientService {
 
         try {
             // Vérification et déchiffrement du token JWT
-            const decryptToken = await this.jwtService.verifyAsync(token, { secret: "" + process.env.SECRET });
+            const decryptToken = await this.jwtService.verifyAsync(token, { secret: process.env.SECRET });
 
             if (!decryptToken) {
                 throw new UnauthorizedException('Token JWT invalide ou expiré');
@@ -86,7 +86,7 @@ export class IngredientService {
     // Supprime un ingrédient en fonction de l'ID
     async delete(id: number, @Headers('Authorization') authorizationHeader: string): Promise<void> {
         const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
-        const decryptToken = await this.jwtService.verifyAsync(token, {secret: "" + process.env.SECRET});
+        const decryptToken = await this.jwtService.verifyAsync(token, {secret: process.env.SECRET});
         const userId = decryptToken?.id;
 
         if (!userId) {
