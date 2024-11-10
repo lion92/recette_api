@@ -1,7 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
+import {Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, JoinTable, OneToMany} from 'typeorm';
 import { User } from './User.entity';
 import { Ingredient } from './Ingredient.entity';
 import { Category } from './Category.entity';
+import {RecipeIngredient} from "./RecipeIngredient.entity";
 
 @Entity()
 export class Recipe {
@@ -38,4 +39,7 @@ export class Recipe {
     categories!: Category[];
 
     totalCost!: number;
+
+    @OneToMany(() => RecipeIngredient, (recipeIngredient) => recipeIngredient.recipe, { cascade: true })
+    recipeIngredients!: RecipeIngredient[];
 }

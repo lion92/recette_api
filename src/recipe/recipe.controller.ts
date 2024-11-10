@@ -11,38 +11,50 @@ import {
     Put,
     Query
 } from '@nestjs/common';
-import {RecipeService} from './recipe.service';
-import {Recipe} from "../entity/Recipe.entity";
-import {IngredientService} from "../ingredient/Ingredient.service";
-import {RecipeDTO} from "../interface/RecipeDTO";
+import { RecipeService } from './recipe.service';
+import { Recipe } from "../entity/Recipe.entity";
+import { IngredientService } from "../ingredient/Ingredient.service";
+import { RecipeDTO } from "../interface/RecipeDTO";
+import { RecipeResponse } from "../interface/recipeResponseDTO";
 
 @Controller('recipes')
 export class RecipeController {
-    constructor(private recipeService: RecipeService,
-                private readonly ingredientService: IngredientService) {}
+    constructor(
+        private readonly recipeService: RecipeService,
+        private readonly ingredientService: IngredientService
+    ) {}
 
     // Route pour la création d'une recette
     @Post()
-    createRecipe(@Body() body: Recipe, @Headers('Authorization') authorizationHeader: string) {
-        console.log(body);
-        return this.recipeService.createRecipe(body, authorizationHeader);
+    async createRecipe(@Body() body: RecipeDTO, @Headers('Authorization') authorizationHeader: string) {
+        try {
+            console.log('Création de la recette:', body);
+            return await this.recipeService.createRecipe(body, authorizationHeader);
+        } catch (error) {
+            console.error('Erreur lors de la création de la recette:', error);
+            throw new InternalServerErrorException('Erreur lors de la création de la recette.');
+        }
     }
 
     // Récupération de toutes les recettes
     @Get('/all')
-    findAll() {
-        return this.recipeService.findAll();
+    async findAll(): Promise<RecipeResponse[]> {
+        try {
+            return await this.recipeService.findAll();
+        } catch (error) {
+            console.error('Erreur lors de la récupération de toutes les recettes:', error);
+            throw new InternalServerErrorException('Erreur lors de la récupération de toutes les recettes.');
+        }
     }
 
-    // Route de filtrage des recettes (doit être placée avant la route paramétrique)
+    // Route de filtrage des recettes
     @Get('/filter')
     async filterRecipes(
         @Query('categories') categories: string,
         @Query('ingredients') ingredients: string
-    ): Promise<RecipeDTO[]> {
+    ): Promise<Recipe[]> {
         console.log("Début du filtrage des recettes");
         try {
-            // Initialisation par défaut à des listes vides
             let categoryIds: number[] = [];
             let ingredientIds: number[] = [];
 
@@ -56,13 +68,10 @@ export class RecipeController {
                 console.log('IDs des ingrédients analysés:', ingredientIds);
             }
 
-            // Vérification des paramètres : au moins une liste doit être non vide
             if (categoryIds.length === 0 && ingredientIds.length === 0) {
                 throw new BadRequestException('Veuillez fournir au moins un identifiant de catégorie ou d\'ingrédient pour le filtrage.');
             }
 
-            // Appel au service avec les listes fournies
-            console.log('Filtrage par catégories et ingrédients');
             return await this.recipeService.getFilteredRecipes(categoryIds, ingredientIds);
         } catch (error) {
             console.error('Erreur lors du filtrage des recettes:', error);
@@ -70,34 +79,52 @@ export class RecipeController {
         }
     }
 
-    // Récupération d'une recette par ID (route paramétrique)
+    // Récupération d'une recette par ID
     @Get(':id')
-    findOne(@Param('id') id: number) {
-        return this.recipeService.findOne(id);
+    async findOne(@Param('id') id: number): Promise<RecipeResponse> {
+        try {
+            return await this.recipeService.findOne(id);
+        } catch (error) {
+            console.error(`Erreur lors de la récupération de la recette avec l'ID ${id}:`, error);
+            throw new InternalServerErrorException(`Erreur lors de la récupération de la recette avec l'ID ${id}.`);
+        }
     }
 
     // Route pour obtenir les calories d'une recette
-    @Get(':recipeId')
+    @Get(':recipeId/calories')
     async getCalories(@Param('recipeId') recipeId: number): Promise<number> {
-        const recipe = await this.recipeService.findOne(recipeId);
-        const ingredientIds = recipe.ingredients.map(ingredient => ingredient.id);
-        const ingredients = await this.ingredientService.findAllByIds(ingredientIds);
-        return this.recipeService.calculateCalories(recipe, ingredients);
+        try {
+            const recipe = await this.recipeService.findOne(recipeId);
+            return this.recipeService.calculateCalories(recipe);
+        } catch (error) {
+            console.error(`Erreur lors du calcul des calories pour la recette avec l'ID ${recipeId}:`, error);
+            throw new InternalServerErrorException('Erreur lors du calcul des calories.');
+        }
     }
 
     // Mise à jour d'une recette
     @Put(':id')
-    updateRecipe(
+    async updateRecipe(
         @Param('id') id: number,
-        @Body() updateData: Recipe,
+        @Body() updateData: RecipeDTO,
         @Headers('Authorization') authorizationHeader: string
-    ) {
-        return this.recipeService.updateRecipe(id, updateData, authorizationHeader);
+    ): Promise<RecipeResponse> {
+        try {
+            return await this.recipeService.updateRecipe(id, updateData, authorizationHeader);
+        } catch (error) {
+            console.error(`Erreur lors de la mise à jour de la recette avec l'ID ${id}:`, error);
+            throw new InternalServerErrorException('Erreur lors de la mise à jour de la recette.');
+        }
     }
 
     // Suppression d'une recette
     @Delete(':id')
-    deleteRecipe(@Param('id') id: number, @Headers('Authorization') authorizationHeader: string) {
-        return this.recipeService.deleteRecipe(id, authorizationHeader);
+    async deleteRecipe(@Param('id') id: number, @Headers('Authorization') authorizationHeader: string) {
+        try {
+            return await this.recipeService.deleteRecipe(id, authorizationHeader);
+        } catch (error) {
+            console.error(`Erreur lors de la suppression de la recette avec l'ID ${id}:`, error);
+            throw new InternalServerErrorException('Erreur lors de la suppression de la recette.');
+        }
     }
 }
