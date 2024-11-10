@@ -92,7 +92,6 @@ export class RecipeService {
     }
 
     // Création d'une recette
-    // Création d'une recette
     async createRecipe(createRecipeDto: RecipeDTO, authorizationHeader: string) {
         if (!authorizationHeader) {
             throw new UnauthorizedException('En-tête Authorization manquant');
@@ -136,7 +135,7 @@ export class RecipeService {
         recipeIngredients.forEach((recipeIngredient) => {
             const quantity = recipeIngredient.quantity;
             totalCalories += recipeIngredient.ingredient.caloriesPerUnit * quantity;
-            totalCost += recipeIngredient.ingredient.price * quantity; // Calcul du coût total
+            totalCost += recipeIngredient.ingredient.price * quantity;
         });
 
         const categories = await this.categoryRepository.findBy({ id: In(createRecipeDto.categories.map(cat => cat.id)) });
@@ -154,7 +153,7 @@ export class RecipeService {
             recipeIngredients: recipeIngredients,
             categories: categories,
             totalCalories: totalCalories,
-            totalCost: totalCost, // Enregistrement du coût total
+            totalCost: totalCost,
         });
 
         await this.recipesRepository.save(newRecipe);
@@ -202,9 +201,7 @@ export class RecipeService {
         // Mise à jour des ingrédients et de leurs quantités
         if (updateData.ingredients && updateData.ingredients.length > 0) {
             const ingredientIds = updateData.ingredients.map((ingredient) => ingredient.id);
-            const ingredients = await this.ingredientRepository.findBy({
-                id: In(ingredientIds),
-            });
+            const ingredients = await this.ingredientRepository.findBy({ id: In(ingredientIds) });
 
             if (ingredients.length !== ingredientIds.length) {
                 throw new NotFoundException('Certains ingrédients n\'ont pas été trouvés');
@@ -229,9 +226,7 @@ export class RecipeService {
         // Mise à jour des catégories
         if (updateData.categories && updateData.categories.length > 0) {
             const categoryIds = updateData.categories.map((category) => category.id);
-            const categories = await this.categoryRepository.findBy({
-                id: In(categoryIds),
-            });
+            const categories = await this.categoryRepository.findBy({ id: In(categoryIds) });
 
             if (categories.length !== categoryIds.length) {
                 throw new NotFoundException('Certaines catégories n\'ont pas été trouvées');
@@ -277,9 +272,10 @@ export class RecipeService {
         };
     }
 
+    // Calcul des calories pour une recette
     calculateCalories(recipe: RecipeResponse): number {
         return recipe.ingredients.reduce((total, ingredient) => {
-            const quantity = ingredient.quantity || 1; // Utilise la quantité de RecipeIngredient
+            const quantity = ingredient.quantity || 1;
             return total + (ingredient.caloriesPerUnit * quantity);
         }, 0);
     }
@@ -310,6 +306,7 @@ export class RecipeService {
 
         return this.recipesRepository.delete(id);
     }
+
     // Filtrer les recettes par catégories et ingrédients
     async filterByCategoriesAndIngredients(categoryIds: number[], ingredientIds: number[]): Promise<number[]> {
         if (!categoryIds.length && !ingredientIds.length) {
@@ -321,19 +318,19 @@ export class RecipeService {
 
         const rawData = await this.recipesRepository.query(
             `
-        SELECT 
-            r.id
-        FROM recipe r
-        JOIN recipe_categories_category rc ON rc.recipeId = r.id
-        JOIN recipe_ingredient ri ON ri.recipeId = r.id
-        WHERE 
-            (${categoryIds.length ? `rc.categoryId IN (${categoryPlaceholders})` : '1=1'})
-            AND
-            (${ingredientIds.length ? `ri.ingredientId IN (${ingredientPlaceholders})` : '1=1'})
-        GROUP BY r.id
-        HAVING COUNT(DISTINCT rc.categoryId) >= ?
-        AND COUNT(DISTINCT ri.ingredientId) >= ?
-        `,
+            SELECT 
+                r.id
+            FROM recipe r
+            JOIN recipe_categories_category rc ON rc.recipeId = r.id
+            JOIN recipe_ingredient ri ON ri.recipeId = r.id
+            WHERE 
+                (${categoryIds.length ? `rc.categoryId IN (${categoryPlaceholders})` : '1=1'})
+                AND
+                (${ingredientIds.length ? `ri.ingredientId IN (${ingredientPlaceholders})` : '1=1'})
+            GROUP BY r.id
+            HAVING COUNT(DISTINCT rc.categoryId) >= ?
+            AND COUNT(DISTINCT ri.ingredientId) >= ?
+            `,
             [...categoryIds, ...ingredientIds, categoryIds.length, ingredientIds.length]
         );
 
@@ -348,20 +345,18 @@ export class RecipeService {
 
         const recipes = await this.recipesRepository.find({
             where: { id: In(recipeIds) },
-            relations: ['user', 'ingredients', 'categories'], // Charger les relations nécessaires
+            relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
         });
 
-        // Calculer le totalCost pour chaque recette
         return recipes.map(recipe => {
-            const totalCost = recipe.ingredients.reduce((total, ingredient) => {
-                const ingredientPrice = ingredient.price || 0; // Assurer que le prix est défini
-                const quantity = ingredient.defaultQuantity || 1; // Utiliser la quantité par défaut si elle est définie
-                return total + (ingredientPrice * quantity);
+            const totalCost = recipe.recipeIngredients.reduce((total, recipeIngredient) => {
+                const quantity = recipeIngredient.quantity;
+                return total + (recipeIngredient.ingredient.price * quantity);
             }, 0);
 
             return {
                 ...recipe,
-                totalCost, // Ajouter le coût total calculé à la recette
+                totalCost,
             };
         });
     }
@@ -371,6 +366,4 @@ export class RecipeService {
         const recipeIds = await this.filterByCategoriesAndIngredients(categoryIds, ingredientIds);
         return this.getRecipesByIds(recipeIds);
     }
-
-
 }
