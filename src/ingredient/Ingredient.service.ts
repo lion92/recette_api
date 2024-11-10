@@ -5,6 +5,7 @@ import {Ingredient} from '../entity/Ingredient.entity';
 import {JwtService} from '@nestjs/jwt';
 import {User} from "../entity/User.entity";
 import * as dotenv from 'dotenv';
+import * as process from "process";
 dotenv.config();
 @Injectable()
 export class IngredientService {
@@ -33,44 +34,36 @@ export class IngredientService {
             throw new UnauthorizedException('En-tête Authorization manquant');
         }
 
-        const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
+        const token = authorizationHeader.replace('Bearer ', '');
 
         try {
-            // Vérification et déchiffrement du token JWT
             const decryptToken = await this.jwtService.verifyAsync(token, { secret: process.env.SECRET });
-
             if (!decryptToken) {
                 throw new UnauthorizedException('Token JWT invalide ou expiré');
             }
 
-            // Récupération de l'ID utilisateur à partir du token
             const userId = decryptToken?.id;
             if (!userId) {
                 throw new UnauthorizedException('Utilisateur non valide');
             }
 
-            // Récupérer l'utilisateur à partir de l'ID
             const user = await this.userRepository.findOne({ where: { id: userId } });
             if (!user) {
                 throw new UnauthorizedException('Utilisateur non trouvé');
             }
 
-            // Vérifier que le champ `price` est défini et attribuer une valeur par défaut si nécessaire
             if (ingredientData.price === undefined || ingredientData.price === null) {
-                ingredientData.price = 0; // Définir une valeur par défaut de 0 pour `price`
+                ingredientData.price = 0;
             }
 
-            // Associer l'utilisateur à l'ingrédient
             const ingredient = this.ingredientRepository.create({
                 ...ingredientData,
-                user: user, // Association de l'utilisateur récupéré à l'ingrédient
+                user: user,
             });
 
-            // Sauvegarder l'ingrédient dans la base de données
             return await this.ingredientRepository.save(ingredient);
-
         } catch (error) {
-            console.error(error);
+            console.error('Erreur lors de la création de l\'ingrédient:', error);
             throw new UnauthorizedException('Une erreur est survenue lors de la création de l\'ingrédient');
         }
     }

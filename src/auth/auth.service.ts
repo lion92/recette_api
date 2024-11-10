@@ -71,7 +71,7 @@ export class AuthService {
             secure: true, // Utiliser SSL/TLS
             auth: {
                 user: 'noreply_justerecipes@krissclotilde.com',
-                pass: ""+process.env.MAIL, // Mot de passe de votre compte
+                pass: process.env.MAIL, // Mot de passe de votre compte
             },
             tls: {
                 rejectUnauthorized: false, // Ignore les erreurs de certificat

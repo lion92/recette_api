@@ -47,10 +47,20 @@ export class CategoryRecipeController {
 
         const token = authHeader.split(' ')[1]; // Extraire le token du header
 
+        if (!token) {
+            throw new UnauthorizedException('Token is malformed');
+        }
+
+        const secret = process.env.SECRET;
+        if (!secret) {
+            throw new UnauthorizedException('Secret key is not defined in environment variables');
+        }
+
         try {
-            jwt.verify(token, process.env.SECRET); // Vérification du token
+            jwt.verify(token, secret); // Vérification du token
         } catch (err) {
             throw new UnauthorizedException('Invalid token');
         }
     }
+
 }
