@@ -9,20 +9,45 @@ import {
     Param,
     Post,
     Put,
-    Query
+    Query,
+    UploadedFile,
+    UseInterceptors
 } from '@nestjs/common';
-import { RecipeService } from './recipe.service';
-import { Recipe } from "../entity/Recipe.entity";
-import { IngredientService } from "../ingredient/Ingredient.service";
-import { RecipeDTO } from "../interface/RecipeDTO";
-import { RecipeResponse } from "../interface/recipeResponseDTO";
-
+import {RecipeService} from './recipe.service';
+import {Recipe} from "../entity/Recipe.entity";
+import {IngredientService} from "../ingredient/Ingredient.service";
+import {RecipeDTO} from "../interface/RecipeDTO";
+import {RecipeResponse} from "../interface/recipeResponseDTO";
+import {FileInterceptor} from "@nestjs/platform-express";
+import { extname } from 'path'; // Import pour gérer les extensions de fichier
 @Controller('recipes')
 export class RecipeController {
     constructor(
         private readonly recipeService: RecipeService,
         private readonly ingredientService: IngredientService
-    ) {}
+    ) {
+    }
+
+    @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadFile(@UploadedFile() file: Express.Multer.File) {
+        if (!file) {
+            throw new BadRequestException('Le fichier est requis');
+        }
+
+        // Obtenez l'extension du fichier d'origine
+        const originalExtension = extname(file.originalname);
+        // Créez un nouveau nom de fichier avec l'extension d'origine
+        const filePath = `https://www.krisscode.fr/recette/uploads/${file.filename}${originalExtension}`;
+
+        // Renommer le fichier pour ajouter l'extension d'origine
+        const fs = require('fs');
+        const newFilePath = `${file.destination}/${file.filename}${originalExtension}`;
+        fs.renameSync(file.path, newFilePath);
+
+        // Retourner le chemin d'accès avec l'extension
+        return { filePath };
+    }
 
     // Route pour la création d'une recette
     @Post()

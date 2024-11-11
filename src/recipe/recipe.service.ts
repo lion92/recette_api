@@ -24,7 +24,8 @@ export class RecipeService {
         @InjectRepository(RecipeIngredient)
         private recipeIngredientRepository: Repository<RecipeIngredient>,
         private jwtService: JwtService
-    ) {}
+    ) {
+    }
 
     // Trouver toutes les recettes
     async findAll(): Promise<RecipeResponse[]> {
@@ -33,7 +34,7 @@ export class RecipeService {
         });
 
         return recipes.map(recipe => {
-            const { password, ...userWithoutPassword } = recipe.user;
+            const {password, ...userWithoutPassword} = recipe.user;
 
             const totalCost = recipe.recipeIngredients.reduce((total, recipeIngredient) => {
                 const quantity = recipeIngredient.quantity;
@@ -61,7 +62,7 @@ export class RecipeService {
     // Trouver une recette par ID
     async findOne(id: number): Promise<RecipeResponse> {
         const recipe = await this.recipesRepository.findOne({
-            where: { id },
+            where: {id},
             relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
         });
 
@@ -108,6 +109,7 @@ export class RecipeService {
             throw new UnauthorizedException('Utilisateur non valide');
         }
 
+        // Validation des ingrédients
         const ingredientIds = createRecipeDto.ingredients.map((ing) => ing.id);
         const ingredients = await this.ingredientRepository.findBy({ id: In(ingredientIds) });
 
@@ -143,6 +145,7 @@ export class RecipeService {
             throw new NotFoundException('Certaines catégories n\'ont pas été trouvées');
         }
 
+        // Ajoutez l'image au moment de la création de la recette
         const newRecipe = this.recipesRepository.create({
             title: createRecipeDto.title,
             description: createRecipeDto.description,
@@ -153,7 +156,7 @@ export class RecipeService {
             categories: categories,
             totalCalories: totalCalories,
             totalCost: totalCost,
-            imagePath: createRecipeDto.imagePath,
+            imagePath: createRecipeDto.imagePath, // Image enregistrée lors du téléchargement
         });
 
         await this.recipesRepository.save(newRecipe);
@@ -172,7 +175,7 @@ export class RecipeService {
         }
 
         const token = authorizationHeader.replace('Bearer ', '');
-        const decryptToken = await this.jwtService.verifyAsync(token, { secret: process.env.SECRET });
+        const decryptToken = await this.jwtService.verifyAsync(token, {secret: process.env.SECRET});
         const userId = decryptToken?.id;
 
         if (!userId) {
@@ -180,7 +183,7 @@ export class RecipeService {
         }
 
         const existingRecipe = await this.recipesRepository.findOne({
-            where: { id: recipeId },
+            where: {id: recipeId},
             relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
         });
 
@@ -201,7 +204,7 @@ export class RecipeService {
         // Mise à jour des ingrédients et de leurs quantités
         if (updateData.ingredients && updateData.ingredients.length > 0) {
             const ingredientIds = updateData.ingredients.map((ingredient) => ingredient.id);
-            const ingredients = await this.ingredientRepository.findBy({ id: In(ingredientIds) });
+            const ingredients = await this.ingredientRepository.findBy({id: In(ingredientIds)});
 
             if (ingredients.length !== ingredientIds.length) {
                 throw new NotFoundException('Certains ingrédients n\'ont pas été trouvés');
@@ -226,7 +229,7 @@ export class RecipeService {
         // Mise à jour des catégories
         if (updateData.categories && updateData.categories.length > 0) {
             const categoryIds = updateData.categories.map((category) => category.id);
-            const categories = await this.categoryRepository.findBy({ id: In(categoryIds) });
+            const categories = await this.categoryRepository.findBy({id: In(categoryIds)});
 
             if (categories.length !== categoryIds.length) {
                 throw new NotFoundException('Certaines catégories n\'ont pas été trouvées');
@@ -249,7 +252,7 @@ export class RecipeService {
         await this.recipesRepository.save(existingRecipe);
 
         const updatedRecipe = await this.recipesRepository.findOne({
-            where: { id: recipeId },
+            where: {id: recipeId},
             relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
         });
 
@@ -287,14 +290,14 @@ export class RecipeService {
         }
 
         const token = authorizationHeader.replace('Bearer ', '');
-        const decryptToken = await this.jwtService.verifyAsync(token, { secret: process.env.SECRET });
+        const decryptToken = await this.jwtService.verifyAsync(token, {secret: process.env.SECRET});
         const userId = decryptToken?.id;
 
         if (!userId) {
             throw new UnauthorizedException('Utilisateur non valide');
         }
 
-        const recipe = await this.recipesRepository.findOne({ where: { id }, relations: ['user'] });
+        const recipe = await this.recipesRepository.findOne({where: {id}, relations: ['user']});
 
         if (!recipe) {
             throw new NotFoundException(`Recette avec l'ID ${id} non trouvée`);
@@ -318,18 +321,15 @@ export class RecipeService {
 
         const rawData = await this.recipesRepository.query(
             `
-            SELECT 
-                r.id
-            FROM recipe r
-            JOIN recipe_categories_category rc ON rc.recipeId = r.id
-            JOIN recipe_ingredient ri ON ri.recipeId = r.id
-            WHERE 
-                (${categoryIds.length ? `rc.categoryId IN (${categoryPlaceholders})` : '1=1'})
-                AND
-                (${ingredientIds.length ? `ri.ingredientId IN (${ingredientPlaceholders})` : '1=1'})
-            GROUP BY r.id
-            HAVING COUNT(DISTINCT rc.categoryId) >= ?
-            AND COUNT(DISTINCT ri.ingredientId) >= ?
+                SELECT r.id
+                FROM recipe r
+                         JOIN recipe_categories_category rc ON rc.recipeId = r.id
+                         JOIN recipe_ingredient ri ON ri.recipeId = r.id
+                WHERE (${categoryIds.length ? `rc.categoryId IN (${categoryPlaceholders})` : '1=1'})
+                  AND (${ingredientIds.length ? `ri.ingredientId IN (${ingredientPlaceholders})` : '1=1'})
+                GROUP BY r.id
+                HAVING COUNT(DISTINCT rc.categoryId) >= ?
+                   AND COUNT(DISTINCT ri.ingredientId) >= ?
             `,
             [...categoryIds, ...ingredientIds, categoryIds.length, ingredientIds.length]
         );
@@ -344,7 +344,7 @@ export class RecipeService {
         }
 
         const recipes = await this.recipesRepository.find({
-            where: { id: In(recipeIds) },
+            where: {id: In(recipeIds)},
             relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
         });
 
