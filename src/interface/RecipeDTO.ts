@@ -12,4 +12,5 @@ export class RecipeDTO {
     ingredients!: { id: number; quantity: number }[]; // Tableau d'objets contenant l'ID et la quantité des ingrédients
     categories!: Category[]; // Tableau de catégories
     totalCost!: number;
+    imagePath!:string
 }

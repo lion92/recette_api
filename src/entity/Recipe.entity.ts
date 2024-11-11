@@ -28,6 +28,8 @@ export class Recipe {
     @Column('float', { default: 0 })
     totalCalories!: number; // Ajout du champ totalCalories
 
+    @Column('text')
+    imagePath!:string
     // Relation Many-to-Many avec les ingrédients
     @ManyToMany(() => Ingredient,  Ingredient=>Ingredient.id)
     @JoinTable()
@@ -42,4 +44,6 @@ export class Recipe {
 
     @OneToMany(() => RecipeIngredient, (recipeIngredient) => recipeIngredient.recipe, { cascade: true })
     recipeIngredients!: RecipeIngredient[];
+
+
 }

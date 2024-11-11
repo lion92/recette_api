@@ -1,15 +1,14 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
-import { JwtService } from '@nestjs/jwt';
-import { Recipe } from '../entity/Recipe.entity';
-import { Ingredient } from '../entity/Ingredient.entity';
-import { Category } from '../entity/Category.entity';
-import { User } from '../entity/User.entity';
-import { RecipeIngredient } from '../entity/RecipeIngredient.entity';
+import {Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {In, Repository} from 'typeorm';
+import {JwtService} from '@nestjs/jwt';
+import {Recipe} from '../entity/Recipe.entity';
+import {Ingredient} from '../entity/Ingredient.entity';
+import {Category} from '../entity/Category.entity';
+import {RecipeIngredient} from '../entity/RecipeIngredient.entity';
 import * as dotenv from 'dotenv';
-import { RecipeDTO } from '../interface/RecipeDTO';
-import { RecipeResponse } from '../interface/recipeResponseDTO';
+import {RecipeDTO} from '../interface/RecipeDTO';
+import {RecipeResponse} from '../interface/recipeResponseDTO';
 
 dotenv.config();
 
@@ -154,6 +153,7 @@ export class RecipeService {
             categories: categories,
             totalCalories: totalCalories,
             totalCost: totalCost,
+            imagePath: createRecipeDto.imagePath,
         });
 
         await this.recipesRepository.save(newRecipe);
