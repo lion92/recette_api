@@ -14,8 +14,11 @@ import {MulterModule} from "@nestjs/platform-express";
 @Module({
   imports: [TypeOrmModule.forFeature([Recipe, Category, Ingredient, User, RecipeIngredient]),
     MulterModule.register({
-    dest: './uploads', // Répertoire de stockage des images
-  })], // Spécifie l'entité Recipe
+      dest: './uploads',
+      limits: {
+        fileSize: 3 * 1024 * 1024 * 1024, // 3 Go en octets
+      },
+    })], // Spécifie l'entité Recipe
   controllers: [RecipeController],
   providers: [RecipeService, JwtService, IngredientService],
 })
