@@ -250,9 +250,6 @@ export class RecipeService {
         existingRecipe.totalCost = totalPrice;
         console.log(totalCalories);
         console.log(existingRecipe)
-        if (isNaN(totalCalories)) {
-            throw new Error("Erreur de calcul des calories totales : une ou plusieurs valeurs sont indéfinies.");
-        }
 
         await this.recipesRepository.save(existingRecipe);
 
