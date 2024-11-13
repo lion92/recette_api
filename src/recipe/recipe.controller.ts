@@ -133,7 +133,7 @@ export class RecipeController {
         @Param('id') id: number,
         @Body() updateData: RecipeDTO,
         @Headers('Authorization') authorizationHeader: string
-    ): Promise<Recipe> {
+    ): Promise<RecipeResponse> {
         try {
             return await this.recipeService.updateRecipe(id, updateData, authorizationHeader);
         } catch (error) {
