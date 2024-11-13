@@ -14,4 +14,5 @@ export class UserDTO {
 
     @Column({ default: false })
     isEmailVerified!: boolean;
+
 }

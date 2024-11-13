@@ -12,11 +12,16 @@ import {IngredientService} from "./ingredient/Ingredient.service";
 import {Ingredient} from "./entity/Ingredient.entity";
 import {User} from "./entity/User.entity";
 import * as dotenv from 'dotenv';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 dotenv.config();
 @Module({
   imports: [
     MulterModule.register({
       dest: './uploads',
+    }), ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'), // Dossier où les fichiers sont stockés
+      serveRoot: '/uploads', // URL pour accéder aux fichiers
     }),
     TypeOrmModule.forFeature([Ingredient, User]),
 
@@ -26,12 +31,12 @@ dotenv.config();
       port: 3306,
       username: 'root',
       password: '',
-      database: 'base2',
+      database: 'base3',
       entities: ['src/../**/*.entity.js'],
       synchronize: true,
     }),
     JwtModule.register({
-      secret: ""+process.env.SECRET,
+      secret: process.env.SECRET,
       signOptions: { expiresIn: '24d' },
     }),
       AuthModule,

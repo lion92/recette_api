@@ -38,7 +38,7 @@ export class CategoryRecipeService {
 
         try {
             // Vérification et déchiffrement du token JWT
-            const decryptToken = await this.jwtService.verifyAsync(token, { secret: "" + process.env.SECRET });
+            const decryptToken = await this.jwtService.verifyAsync(token, { secret:  process.env.SECRET });
 
             if (!decryptToken) {
                 throw new UnauthorizedException('Token JWT invalide ou expiré');
@@ -81,7 +81,7 @@ export class CategoryRecipeService {
     // Supprime une catégorie en fonction de l'ID
     async delete(id: number, authorizationHeader: string) {
         const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
-        const decryptToken = await this.jwtService.verifyAsync(token, {secret: "" + process.env.SECRET});
+        const decryptToken = await this.jwtService.verifyAsync(token, {secret: process.env.SECRET});
         const userId = decryptToken?.id;
 
         if (!userId) {

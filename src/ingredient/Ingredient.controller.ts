@@ -1,10 +1,11 @@
-import {Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedException, Headers} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Req, UnauthorizedException, Headers } from '@nestjs/common';
 import { Request } from 'express'; // Import du type Request
 import { IngredientService } from './Ingredient.service';
 import { Ingredient } from '../entity/Ingredient.entity';
 import * as jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 dotenv.config();
+
 @Controller('ingredients')
 export class IngredientController {
     constructor(private readonly ingredientService: IngredientService) {}
@@ -20,36 +21,65 @@ export class IngredientController {
     }
 
     @Post()
-    create(@Req() req: Request, @Body() ingredient: Ingredient, @Headers('Authorization') authorizationHeader: string): Promise<Ingredient> {
-        this.verifyToken(req);
-        return this.ingredientService.create(ingredient, authorizationHeader);
+    async create(
+        @Req() req: Request,
+        @Body() ingredient: Ingredient,
+        @Headers('Authorization') authorizationHeader: string
+    ): Promise<Ingredient> {
+        this.verifyToken(req); // Vérification du token avant de créer
+        return this.ingredientService.create(ingredient, authorizationHeader); // Passer authorizationHeader
     }
 
     @Put(':id')
-    update(@Req() req: Request, @Param('id') id: number, @Body() ingredient: Partial<Ingredient>): Promise<Ingredient | null> {
-        this.verifyToken(req);
+    async update(
+        @Req() req: Request,
+        @Param('id') id: number,
+        @Body() ingredient: Partial<Ingredient>
+    ): Promise<Ingredient | null> {
+        this.verifyToken(req); // Vérification du token avant de mettre à jour
         return this.ingredientService.update(id, ingredient);
     }
 
     @Delete(':id')
-    delete(@Req() req: Request, @Param('id') id: number,  @Headers('Authorization') authorizationHeader: string): Promise<void> {
-        this.verifyToken(req);
-        return this.ingredientService.delete(id, authorizationHeader);
+    async delete(
+        @Req() req: Request,
+        @Param('id') id: number,
+        @Headers('Authorization') authorizationHeader: string
+    ): Promise<void> {
+        this.verifyToken(req); // Vérification du token avant de supprimer
+        return this.ingredientService.delete(id, authorizationHeader); // Passer authorizationHeader
     }
 
     // Méthode pour vérifier le token
     private verifyToken(req: Request): void {
         const authHeader = req.headers['authorization'];
+
+        // Vérifier si l'header Authorization est présent
         if (!authHeader) {
             throw new UnauthorizedException('Token not provided');
         }
 
-        const token = authHeader.split(' ')[1]; // Extraire le token du header
+        // Extraire le token de l'header Authorization
+        const token = authHeader.split(' ')[1];
+
+        // Vérifier si le token est présent
+        if (!token) {
+            throw new UnauthorizedException('Token is malformed');
+        }
+
+        const secret = process.env.SECRET;
+
+        // Vérifier si la clé secrète est définie dans l'environnement
+        if (!secret) {
+            throw new Error('Secret key is not defined in environment variables');
+        }
 
         try {
-            jwt.verify(token, ""+process.env.SECRET); // Vérification du token
+            // Vérification du token avec la clé secrète
+            jwt.verify(token, secret);
         } catch (err) {
-            throw new UnauthorizedException('Invalid token');
+            console.error('Token verification failed:', err);
+            throw new UnauthorizedException('Invalid or expired token');
         }
     }
 }

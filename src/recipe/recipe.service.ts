@@ -2,13 +2,16 @@ import {Injectable, NotFoundException, UnauthorizedException} from '@nestjs/comm
 import {InjectRepository} from '@nestjs/typeorm';
 import {In, Repository} from 'typeorm';
 import {JwtService} from '@nestjs/jwt';
-import {Recipe} from "../entity/Recipe.entity";
-import {Ingredient} from "../entity/Ingredient.entity";
-import {Category} from "../entity/Category.entity";
-import {User} from "../entity/User.entity";
+import {Recipe} from '../entity/Recipe.entity';
+import {Ingredient} from '../entity/Ingredient.entity';
+import {Category} from '../entity/Category.entity';
+import {RecipeIngredient} from '../entity/RecipeIngredient.entity';
 import * as dotenv from 'dotenv';
+import {RecipeDTO} from '../interface/RecipeDTO';
+import {RecipeResponse} from '../interface/recipeResponseDTO';
 
 dotenv.config();
+
 @Injectable()
 export class RecipeService {
     constructor(
@@ -18,269 +21,354 @@ export class RecipeService {
         private categoryRepository: Repository<Category>,
         @InjectRepository(Ingredient)
         private ingredientRepository: Repository<Ingredient>,
+        @InjectRepository(RecipeIngredient)
+        private recipeIngredientRepository: Repository<RecipeIngredient>,
         private jwtService: JwtService
-    ) {}
-
-    // Création d'une recette liée à un utilisateur
-    async createRecipe(createRecipeDto: Recipe, authorizationHeader: string) {
-        console.log(createRecipeDto);
-        console.log(authorizationHeader);
-
-        // Vérification si le header Authorization est présent
-        if (!authorizationHeader) {
-            throw new UnauthorizedException('En-tête Authorization manquant');
-        }
-
-        const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
-
-        try {
-            // Vérification et déchiffrement du token JWT
-            const decryptToken = await this.jwtService.verifyAsync(token, { secret: "" + process.env.SECRET });
-
-            if (!decryptToken) {
-                throw new UnauthorizedException('Token JWT invalide ou expiré');
-            }
-
-            // Récupération de l'ID utilisateur à partir du token
-            const userId = decryptToken?.id;
-            if (!userId) {
-                throw new UnauthorizedException('Utilisateur non valide');
-            }
-
-            // Récupérer tous les ingrédients à partir de leurs identifiants
-            const ingredients = await this.ingredientRepository.findBy({
-                id: In(createRecipeDto.ingredients),
-            });
-
-            // Vérifier si tous les ingrédients ont été trouvés
-            if (ingredients.length <= 0) {
-                throw new Error('Certains ingrédients n\'ont pas été trouvés');
-            }
-
-            // Récupérer toutes les catégories à partir de leurs identifiants
-            const categories = await this.categoryRepository.findBy({
-                id: In(createRecipeDto.categories),
-            });
-
-            // Vérifier si toutes les catégories ont été trouvées
-            if (categories.length <= 0) {
-                throw new Error('Certaines catégories n\'ont pas été trouvées');
-            }
-
-            console.log(ingredients);
-            console.log(categories);
-
-            // Calcul des calories totales
-            let totalCalories = 0;
-            ingredients.forEach((ingredient) => {
-                totalCalories += ingredient.caloriesPerUnit * (ingredient.defaultQuantity || 1);
-            });
-
-            // Créer la nouvelle recette en incluant les ingrédients, les catégories et les calories totales
-            const newRecipe = this.recipesRepository.create({
-                ...createRecipeDto,
-                user: userId, // Associer l'utilisateur à la recette
-                ingredients: ingredients, // Associer les ingrédients récupérés
-                categories: categories, // Associer les catégories récupérées
-                totalCalories: totalCalories, // Inclure les calories totales calculées
-            });
-
-            // Sauvegarder la recette dans la base de données
-            const savedRecipe = await this.recipesRepository.save(newRecipe);
-            console.log(savedRecipe);
-
-            return savedRecipe;
-
-        } catch (error) {
-            console.error(error);
-            throw new Error('Erreur lors de la création de la recette');
-        }
+    ) {
     }
 
-
-
     // Trouver toutes les recettes
-    async findAll(): Promise<{
-        instructions: string;
-        isPublished: boolean;
-        description: string;
-        ingredients: Ingredient[];
-        id: number;
-        categories: Category[];
-        title: string;
-        user: Omit<User, "password">;
-        totalCost: number
-    }[]> {
-        let recipes = await this.recipesRepository.find({
-            relations: ['user', 'ingredients', 'categories'], // Charge les relations nécessaires
+    async findAll(): Promise<RecipeResponse[]> {
+        const recipes = await this.recipesRepository.find({
+            relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
         });
 
         return recipes.map(recipe => {
-            const { password, ...userWithoutPassword } = recipe.user; // Extraire le champ password et conserver le reste
+            const {password, ...userWithoutPassword} = recipe.user;
+
+            const totalCost = recipe.recipeIngredients.reduce((total, recipeIngredient) => {
+                const quantity = recipeIngredient.quantity;
+                return total + (recipeIngredient.ingredient.price * quantity);
+            }, 0);
+
+            const ingredientsWithQuantities = recipe.recipeIngredients.map(recipeIngredient => ({
+                id: recipeIngredient.ingredient.id,
+                name: recipeIngredient.ingredient.name,
+                price: recipeIngredient.ingredient.price,
+                quantity: recipeIngredient.quantity,
+                caloriesPerUnit: recipeIngredient.ingredient.caloriesPerUnit,
+                defaultQuantity: recipeIngredient.quantity,
+            }));
 
             return {
                 ...recipe,
-                user: userWithoutPassword, // Utiliser l'objet user sans le champ password
-                totalCost: recipe.ingredients.reduce((total, ingredient) => total + Number(ingredient.price), 0) // Calculer et ajouter le coût total
+                user: userWithoutPassword,
+                totalCost,
+                ingredients: ingredientsWithQuantities,
             };
         });
-
     }
 
-
     // Trouver une recette par ID
-    async findOne(id: number): Promise<Recipe> {
-        const recipe = await this.recipesRepository.findOne({ where: { id } });
+    async findOne(id: number): Promise<RecipeResponse> {
+        const recipe = await this.recipesRepository.findOne({
+            where: {id},
+            relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
+        });
 
         if (!recipe) {
             throw new NotFoundException(`Recette avec l'ID ${id} non trouvée`);
         }
 
-        return recipe;
+        const totalCost = recipe.recipeIngredients.reduce((total, recipeIngredient) => {
+            const quantity = recipeIngredient.quantity;
+            return total + (recipeIngredient.ingredient.price * quantity);
+        }, 0);
+
+        const ingredientsWithQuantities = recipe.recipeIngredients.map(recipeIngredient => ({
+            id: recipeIngredient.ingredient.id,
+            name: recipeIngredient.ingredient.name,
+            price: recipeIngredient.ingredient.price,
+            quantity: recipeIngredient.quantity,
+            caloriesPerUnit: recipeIngredient.ingredient.caloriesPerUnit,
+            defaultQuantity: recipeIngredient.quantity,
+        }));
+
+        return {
+            ...recipe,
+            totalCost,
+            ingredients: ingredientsWithQuantities,
+        };
+    }
+
+    // Création d'une recette
+    async createRecipe(createRecipeDto: RecipeDTO, authorizationHeader: string) {
+        if (!authorizationHeader) {
+            throw new UnauthorizedException('En-tête Authorization manquant');
+        }
+
+        const token = authorizationHeader.replace('Bearer ', '');
+        const decryptToken = await this.jwtService.verifyAsync(token, { secret: process.env.SECRET });
+
+        if (!decryptToken) {
+            throw new UnauthorizedException('Token JWT invalide ou expiré');
+        }
+
+        const userId = decryptToken?.id;
+        if (!userId) {
+            throw new UnauthorizedException('Utilisateur non valide');
+        }
+
+        // Validation des ingrédients
+        const ingredientIds = createRecipeDto.ingredients.map((ing) => ing.id);
+        const ingredients = await this.ingredientRepository.findBy({ id: In(ingredientIds) });
+
+        if (ingredients.length !== ingredientIds.length) {
+            throw new NotFoundException('Certains ingrédients n\'ont pas été trouvés');
+        }
+
+        const recipeIngredients: RecipeIngredient[] = createRecipeDto.ingredients.map((ingredientDto) => {
+            const ingredient = ingredients.find((ing) => ing.id === ingredientDto.id);
+            if (!ingredient) {
+                throw new NotFoundException(`Ingrédient avec l'ID ${ingredientDto.id} non trouvé`);
+            }
+
+            const recipeIngredient = new RecipeIngredient();
+            recipeIngredient.ingredient = ingredient;
+            recipeIngredient.quantity = ingredientDto.quantity;
+
+            return recipeIngredient;
+        });
+
+        // Calcul du coût total et des calories totales
+        let totalCalories = 0;
+        let totalCost = 0;
+        recipeIngredients.forEach((recipeIngredient) => {
+            const quantity = recipeIngredient.quantity;
+            totalCalories += recipeIngredient.ingredient.caloriesPerUnit * quantity;
+            totalCost += recipeIngredient.ingredient.price * quantity;
+        });
+
+        const categories = await this.categoryRepository.findBy({ id: In(createRecipeDto.categories.map(cat => cat.id)) });
+
+        if (categories.length !== createRecipeDto.categories.length) {
+            throw new NotFoundException('Certaines catégories n\'ont pas été trouvées');
+        }
+
+        // Ajoutez l'image au moment de la création de la recette
+        const newRecipe = this.recipesRepository.create({
+            title: createRecipeDto.title,
+            description: createRecipeDto.description,
+            instructions: createRecipeDto.instructions,
+            isPublished: createRecipeDto.isPublished ?? true,
+            user: userId,
+            recipeIngredients: recipeIngredients,
+            categories: categories,
+            totalCalories: totalCalories,
+            totalCost: totalCost,
+            imagePath: createRecipeDto.imagePath, // Image enregistrée lors du téléchargement
+        });
+
+        await this.recipesRepository.save(newRecipe);
+
+        return newRecipe;
     }
 
     // Mettre à jour une recette
     async updateRecipe(
         recipeId: number,
-        updateData: Partial<Recipe>,
+        updateData: Partial<RecipeDTO>,
         authorizationHeader: string
-    ): Promise<Recipe> {
+    ): Promise<RecipeResponse> {
         if (!authorizationHeader) {
-            console.log('En-tête Authorization manquant');
             throw new UnauthorizedException('En-tête Authorization manquant');
         }
 
         const token = authorizationHeader.replace('Bearer ', '');
-        console.log('Token extrait :', token);
-
-        try {
-            const decryptToken = await this.jwtService.verifyAsync(token, { secret: "" + process.env.SECRET });
-            const userId = decryptToken?.id;
-            console.log('ID utilisateur extrait du token :', userId);
-
-            if (!userId) {
-                console.log('Utilisateur non valide');
-                throw new UnauthorizedException('Utilisateur non valide');
-            }
-
-            // Rechercher la recette par ID avec ses relations
-            const existingRecipe = await this.recipesRepository.findOne({
-                where: { id: recipeId },
-                relations: ['user', 'ingredients', 'categories'],
-            });
-            console.log('Recette existante récupérée :', existingRecipe);
-
-            // Vérification que la recette existe
-            if (!existingRecipe) {
-                console.log(`Recette avec l'ID ${recipeId} non trouvée`);
-                throw new NotFoundException(`Recette avec l'ID ${recipeId} non trouvée`);
-            }
-
-            // S'assurer que l'utilisateur modifie sa propre recette
-            if (existingRecipe.user?.id !== userId) {
-                console.log('Accès non autorisé : utilisateur différent');
-                throw new UnauthorizedException('Accès non autorisé à cette recette');
-            }
-
-            // Mettre à jour les propriétés simples de la recette
-            console.log('Mise à jour des données de la recette avec :', updateData);
-            Object.assign(existingRecipe, updateData);
-
-            // Si des ingrédients sont fournis, les récupérer par leurs IDs
-            if (updateData.ingredients && updateData.ingredients.length > 0) {
-                console.log('Récupération des ingrédients avec les IDs :', updateData.ingredients.map(ing => ing.id));
-                const ingredients = await this.ingredientRepository.findBy({
-                    id: In(updateData.ingredients.map((ingredient) => ingredient.id)),
-                });
-
-                if (ingredients.length !== updateData.ingredients.length) {
-                    console.log('Certains ingrédients n\'ont pas été trouvés');
-                    throw new NotFoundException('Certains ingrédients n\'ont pas été trouvés');
-                }
-                existingRecipe.ingredients = ingredients;
-                console.log('Ingrédients mis à jour :', ingredients);
-            }
-
-            // Si des catégories sont fournies, les récupérer par leurs IDs
-            if (updateData.categories && updateData.categories.length > 0) {
-                console.log('Récupération des catégories avec les IDs :', updateData.categories.map(cat => cat.id));
-                const categories = await this.categoryRepository.findBy({
-                    id: In(updateData.categories.map((category) => category.id)),
-                });
-
-                if (categories.length !== updateData.categories.length) {
-                    console.log('Certaines catégories n\'ont pas été trouvées');
-                    throw new NotFoundException('Certaines catégories n\'ont pas été trouvées');
-                }
-                existingRecipe.categories = categories;
-                console.log('Catégories mises à jour :', categories);
-            }
-
-            // Sauvegarder la recette mise à jour
-            console.log('Sauvegarde de la recette mise à jour');
-            await this.recipesRepository.save(existingRecipe);
-
-            // Retourner la recette mise à jour
-            const updatedRecipe = await this.recipesRepository.findOne({
-                where: { id: recipeId },
-                relations: ['user', 'ingredients', 'categories'],
-            });
-
-            // Vérification que la recette mise à jour existe
-            if (!updatedRecipe) {
-                console.log(`Recette avec l'ID ${recipeId} non trouvée après la mise à jour`);
-                throw new NotFoundException(`Recette avec l'ID ${recipeId} non trouvée après la mise à jour`);
-            }
-
-            console.log('Recette mise à jour avec succès :', updatedRecipe);
-            return updatedRecipe;
-        } catch (error) {
-            console.error('Erreur lors de la mise à jour de la recette :', error);
-            throw error;
-        }
-    }
-
-
-
-    // Supprimer une recette
-    async deleteRecipe(id: number, authorizationHeader: string){
-        const token = authorizationHeader.replace('Bearer ', ''); // Extraction du token sans le préfixe 'Bearer'
-        const decryptToken = await this.jwtService.verifyAsync(token, { secret: ""+process.env.SECRET });
+        const decryptToken = await this.jwtService.verifyAsync(token, {secret: process.env.SECRET});
         const userId = decryptToken?.id;
 
         if (!userId) {
             throw new UnauthorizedException('Utilisateur non valide');
         }
 
-        const recipe = await this.recipesRepository.findBy( {id});
-        console.log(recipe)
-        console.log(id)
+        const existingRecipe = await this.recipesRepository.findOne({
+            where: {id: recipeId},
+            relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
+        });
+
+        if (!existingRecipe) {
+            throw new NotFoundException(`Recette avec l'ID ${recipeId} non trouvée`);
+        }
+
+        if (existingRecipe.user?.id !== userId) {
+            throw new UnauthorizedException('Accès non autorisé à cette recette');
+        }
+
+        // Mise à jour des propriétés de la recette
+        if (updateData.title) existingRecipe.title = updateData.title;
+        if (updateData.description) existingRecipe.description = updateData.description;
+        if (updateData.instructions) existingRecipe.instructions = updateData.instructions;
+        if (updateData.isPublished !== undefined) existingRecipe.isPublished = updateData.isPublished;
+
+        // Mise à jour des ingrédients et de leurs quantités
+        if (updateData.ingredients && updateData.ingredients.length > 0) {
+            const ingredientIds = updateData.ingredients.map((ingredient) => ingredient.id);
+            const ingredients = await this.ingredientRepository.findBy({id: In(ingredientIds)});
+
+            if (ingredients.length !== ingredientIds.length) {
+                throw new NotFoundException('Certains ingrédients n\'ont pas été trouvés');
+            }
+
+            const updatedRecipeIngredients = updateData.ingredients.map((ingredientDto) => {
+                const ingredient = ingredients.find((ing) => ing.id === ingredientDto.id);
+                if (!ingredient) {
+                    throw new NotFoundException(`Ingrédient avec l'ID ${ingredientDto.id} non trouvé`);
+                }
+
+                const recipeIngredient = new RecipeIngredient();
+                recipeIngredient.ingredient = ingredient;
+                recipeIngredient.quantity = ingredientDto.quantity;
+
+                return recipeIngredient;
+            });
+
+            existingRecipe.recipeIngredients = updatedRecipeIngredients;
+        }
+
+        // Mise à jour des catégories
+        if (updateData.categories && updateData.categories.length > 0) {
+            const categoryIds = updateData.categories.map((category) => category.id);
+            const categories = await this.categoryRepository.findBy({id: In(categoryIds)});
+
+            if (categories.length !== categoryIds.length) {
+                throw new NotFoundException('Certaines catégories n\'ont pas été trouvées');
+            }
+
+            existingRecipe.categories = categories;
+        }
+
+        // Recalcul des calories et du coût total
+        let totalCalories = 0;
+        let totalPrice = 0;
+        existingRecipe.recipeIngredients.forEach((recipeIngredient) => {
+            const quantity = recipeIngredient.quantity;
+            totalCalories += recipeIngredient.ingredient.caloriesPerUnit * quantity;
+            totalPrice += recipeIngredient.ingredient.price * quantity;
+        });
+        existingRecipe.totalCalories = totalCalories;
+        existingRecipe.totalCost = totalPrice;
+        console.log(totalCalories);
+        console.log(existingRecipe)
+        if (isNaN(totalCalories)) {
+            throw new Error("Erreur de calcul des calories totales : une ou plusieurs valeurs sont indéfinies.");
+        }
+
+        await this.recipesRepository.save(existingRecipe);
+
+        const updatedRecipe = await this.recipesRepository.findOne({
+            where: {id: recipeId},
+            relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
+        });
+
+        if (!updatedRecipe) {
+            throw new NotFoundException(`Recette avec l'ID ${recipeId} non trouvée après la mise à jour`);
+        }
+
+        const ingredientsWithQuantities = updatedRecipe.recipeIngredients.map(recipeIngredient => ({
+            id: recipeIngredient.ingredient.id,
+            name: recipeIngredient.ingredient.name,
+            price: recipeIngredient.ingredient.price,
+            quantity: recipeIngredient.quantity,
+            caloriesPerUnit: recipeIngredient.ingredient.caloriesPerUnit,
+            defaultQuantity: recipeIngredient.quantity,
+        }));
+
+        return {
+            ...updatedRecipe,
+            ingredients: ingredientsWithQuantities,
+        };
+    }
+
+    // Calcul des calories pour une recette
+    calculateCalories(recipe: RecipeResponse): number {
+        return recipe.ingredients.reduce((total, ingredient) => {
+            const quantity = ingredient.quantity || 1;
+            return total + (ingredient.caloriesPerUnit * quantity);
+        }, 0);
+    }
+
+    // Supprimer une recette
+    async deleteRecipe(id: number, authorizationHeader: string) {
+        if (!authorizationHeader) {
+            throw new UnauthorizedException('En-tête Authorization manquant');
+        }
+
+        const token = authorizationHeader.replace('Bearer ', '');
+        const decryptToken = await this.jwtService.verifyAsync(token, {secret: process.env.SECRET});
+        const userId = decryptToken?.id;
+
+        if (!userId) {
+            throw new UnauthorizedException('Utilisateur non valide');
+        }
+
+        const recipe = await this.recipesRepository.findOne({where: {id}, relations: ['user']});
 
         if (!recipe) {
             throw new NotFoundException(`Recette avec l'ID ${id} non trouvée`);
         }
-        console.log(userId)
-        // S'assurer que l'utilisateur supprime sa propre recette
-        if (recipe[0]?.user?.id !== userId) {
+
+        if (recipe.user?.id !== userId) {
             throw new UnauthorizedException('Accès non autorisé à cette recette');
         }
 
-        return this.recipesRepository.delete(recipe[0].id);
+        return this.recipesRepository.delete(id);
     }
 
-    calculateCalories(recipe: Recipe, ingredients: Ingredient[]): number {
-        let totalCalories = 0;
-
-        // Parcourir chaque ingrédient de la recette
-        for (const ingredient of recipe.ingredients) {
-            const quantity = ingredient.defaultQuantity; // Assurez-vous que chaque `Ingredient` a une propriété `quantity`
-
-            if (quantity) {
-                totalCalories += ingredient.caloriesPerUnit * quantity;
-            }
+    // Filtrer les recettes par catégories et ingrédients
+    async filterByCategoriesAndIngredients(categoryIds: number[], ingredientIds: number[]): Promise<number[]> {
+        if (!categoryIds.length && !ingredientIds.length) {
+            return [];
         }
 
-        return totalCalories;
+        const categoryPlaceholders = categoryIds.map(() => '?').join(',');
+        const ingredientPlaceholders = ingredientIds.map(() => '?').join(',');
+
+        const rawData = await this.recipesRepository.query(
+            `
+                SELECT r.id
+                FROM recipe r
+                         JOIN recipe_categories_category rc ON rc.recipeId = r.id
+                         JOIN recipe_ingredient ri ON ri.recipeId = r.id
+                WHERE (${categoryIds.length ? `rc.categoryId IN (${categoryPlaceholders})` : '1=1'})
+                  AND (${ingredientIds.length ? `ri.ingredientId IN (${ingredientPlaceholders})` : '1=1'})
+                GROUP BY r.id
+                HAVING COUNT(DISTINCT rc.categoryId) >= ?
+                   AND COUNT(DISTINCT ri.ingredientId) >= ?
+            `,
+            [...categoryIds, ...ingredientIds, categoryIds.length, ingredientIds.length]
+        );
+
+        return rawData.map((recipe: any) => recipe.id);
     }
 
+    // Méthode pour récupérer les recettes complètes à partir de leurs IDs
+    async getRecipesByIds(recipeIds: number[]): Promise<Recipe[]> {
+        if (recipeIds.length === 0) {
+            return [];
+        }
+
+        const recipes = await this.recipesRepository.find({
+            where: {id: In(recipeIds)},
+            relations: ['user', 'recipeIngredients', 'recipeIngredients.ingredient', 'categories'],
+        });
+
+        return recipes.map(recipe => {
+            const totalCost = recipe.recipeIngredients.reduce((total, recipeIngredient) => {
+                const quantity = recipeIngredient.quantity;
+                return total + (recipeIngredient.ingredient.price * quantity);
+            }, 0);
+
+            return {
+                ...recipe,
+                totalCost,
+            };
+        });
+    }
+
+    // Méthode complète pour récupérer les recettes filtrées avec détails
+    async getFilteredRecipes(categoryIds: number[], ingredientIds: number[]): Promise<Recipe[]> {
+        const recipeIds = await this.filterByCategoriesAndIngredients(categoryIds, ingredientIds);
+        return this.getRecipesByIds(recipeIds);
+    }
 }

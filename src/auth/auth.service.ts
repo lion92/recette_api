@@ -71,7 +71,7 @@ export class AuthService {
             secure: true, // Utiliser SSL/TLS
             auth: {
                 user: 'noreply_justerecipes@krissclotilde.com',
-                pass: ""+process.env.MAIL, // Mot de passe de votre compte
+                pass: process.env.MAIL, // Mot de passe de votre compte
             },
             tls: {
                 rejectUnauthorized: false, // Ignore les erreurs de certificat
@@ -126,7 +126,7 @@ export class AuthService {
         // Génération du JWT
         const jwt = await this.jwtService.signAsync(
             { id: user.id },
-            { secret: ""+process.env.SECRET }
+            { secret: process.env.SECRET }
         );
 
         return { jwt };
@@ -153,7 +153,7 @@ export class AuthService {
         try {
             // Vérification du token JWT
             const decodedToken = await this.jwtService.verifyAsync(token, {
-                secret: ""+process.env.SECRET, // Utiliser la clé secrète correcte
+                secret: process.env.SECRET, // Utiliser la clé secrète correcte
             });
 
             // Extraction de l'ID de l'utilisateur à partir du token
