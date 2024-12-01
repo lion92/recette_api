@@ -1,4 +1,4 @@
-import {Controller, Post, Get, Body, Param, Headers, UnauthorizedException, Delete} from '@nestjs/common';
+import {Controller, Post, Get, Body, Param, Headers, UnauthorizedException, Delete, Req} from '@nestjs/common';
 import { CalendarService } from './CalendarService';
 import { JwtService } from '@nestjs/jwt';
 
@@ -85,4 +85,25 @@ export class CalendarController {
 
         return { message: `L'événement avec l'ID ${id} a été supprimé.` };
     }
+
+    @Get('/ingredients/prices')
+    async getIngredientsWithPrices(@Headers('Authorization') authorizationHeader: string) {
+        if (!authorizationHeader) {
+            throw new UnauthorizedException('En-tête Authorization manquant');
+        }
+
+        try {
+            const token = authorizationHeader.replace('Bearer ', '');
+            const { id: userId } = await this.jwtService.verifyAsync(token, { secret: process.env.SECRET });
+
+            if (!userId) {
+                throw new UnauthorizedException('Utilisateur non valide');
+            }
+
+            return this.calendarService.getIngredientsWithPrices(userId);
+        } catch (error) {
+            throw new UnauthorizedException('Token JWT invalide ou expiré');
+        }
+    }
+
 }
