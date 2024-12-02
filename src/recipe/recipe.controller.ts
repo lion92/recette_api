@@ -53,7 +53,6 @@ export class RecipeController {
     @Post()
     async createRecipe(@Body() body: RecipeDTO, @Headers('Authorization') authorizationHeader: string) {
         try {
-            console.log('Création de la recette:', body);
             return await this.recipeService.createRecipe(body, authorizationHeader);
         } catch (error) {
             console.error('Erreur lors de la création de la recette:', error);
