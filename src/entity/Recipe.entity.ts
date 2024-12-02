@@ -28,7 +28,7 @@ export class Recipe {
     @Column('float', { default: 0 })
     totalCalories!: number; // Ajout du champ totalCalories
 
-    @Column('text')
+    @Column('longtext')
     imagePath!:string
     // Relation Many-to-Many avec les ingrédients
     @ManyToMany(() => Ingredient,  Ingredient=>Ingredient.id)
