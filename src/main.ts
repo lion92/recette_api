@@ -8,8 +8,8 @@ async function bootstrap() {
     logger: console,
   });
   app.use(cors());
-  app.use(express.json({ limit: '4gb' }));
-  app.use(express.urlencoded({ limit: '4gb', extended: true }));
+  app.use(express.json({ limit: '8gb' }));
+  app.use(express.urlencoded({ limit: '8gb', extended: true }));
   app.use(cookieParser());
   app.enableCors({
     allowedHeaders: '*',
