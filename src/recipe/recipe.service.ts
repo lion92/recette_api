@@ -200,11 +200,15 @@ export class RecipeService {
         if (updateData.description) existingRecipe.description = updateData.description;
         if (updateData.instructions) existingRecipe.instructions = updateData.instructions;
         if (updateData.isPublished !== undefined) existingRecipe.isPublished = updateData.isPublished;
+        if (updateData.imagePath !== undefined) existingRecipe.imagePath = updateData.imagePath;
 
         // Mise à jour des ingrédients et de leurs quantités
         if (updateData.ingredients && updateData.ingredients.length > 0) {
+            console.log('Ingrédients reçus pour mise à jour:', JSON.stringify(updateData.ingredients, null, 2));
             const ingredientIds = updateData.ingredients.map((ingredient) => ingredient.id);
+            console.log('IDs des ingrédients:', ingredientIds);
             const ingredients = await this.ingredientRepository.findBy({id: In(ingredientIds)});
+            console.log('Ingrédients trouvés:', ingredients.length, 'sur', ingredientIds.length);
 
             if (ingredients.length !== ingredientIds.length) {
                 throw new NotFoundException('Certains ingrédients n\'ont pas été trouvés');

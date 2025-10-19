@@ -42,6 +42,9 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Sensitive files (passwords, credentials)
+IDENTIFIANTS.md
+
 # temp directory
 .temp
 .tmp

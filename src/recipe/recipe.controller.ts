@@ -37,15 +37,16 @@ export class RecipeController {
 
         // Obtenez l'extension du fichier d'origine
         const originalExtension = extname(file.originalname);
-        // Créez un nouveau nom de fichier avec l'extension d'origine
-        const filePath = `https://www.krisscode.fr/recette/uploads/${file.filename}${originalExtension}`;
 
         // Renommer le fichier pour ajouter l'extension d'origine
         const fs = require('fs');
         const newFilePath = `${file.destination}/${file.filename}${originalExtension}`;
         fs.renameSync(file.path, newFilePath);
 
-        // Retourner le chemin d'accès avec l'extension
+        // Retourner le chemin relatif (le frontend construira l'URL complète)
+        const filePath = `/uploads/${file.filename}${originalExtension}`;
+
+        console.log('Image uploadée avec succès:', filePath);
         return { filePath };
     }
 
